@@ -83,7 +83,7 @@ void initialize_simulation (void)
   scenario_description[3] = "polar launch at escape velocity (but drag prevents escape)";
   scenario_description[4] = "elliptical orbit that clips the atmosphere and decays";
   scenario_description[5] = "descent from 200km";
-  scenario_description[6] = "";
+  scenario_description[6] = "geostationary orbit";
   scenario_description[7] = "";
   scenario_description[8] = "";
   scenario_description[9] = "";
@@ -157,6 +157,13 @@ void initialize_simulation (void)
     break;
 
   case 6:
+    position = vector3d(20428000.0, 0.0, 0.0);
+    velocity = vector3d(0.0, 1446.0, 0.0);
+    orientation = vector3d(0.0, 0.0, 90.0);
+    delta_t = 0.1;
+    parachute_status = NOT_DEPLOYED;
+    stabilized_attitude = true;
+    autopilot_enabled = false;
     break;
 
   case 7:
