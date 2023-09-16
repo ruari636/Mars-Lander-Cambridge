@@ -13,6 +13,18 @@
 // ahg@eng.cam.ac.uk and gc121@eng.cam.ac.uk.
 
 #include "lander.h"
+double fuel_left = FUEL_CAPACITY;
+#define USEVERLET
+#define FUELMASS FUEL_DENSITY * fuel_left
+#define LANDERMASS UNLOADED_LANDER_MASS + FUELMASS
+#define VELOCITYVERLET (1 / (2 * dt)) * (position - positionNMinus2)
+
+#if defined(USEVERLET)
+  vector3d positionNMinus1 = position - velocity * dt;
+  vector3d positionNMinus2 = position - 2 * velocity * dt;
+#else // Do an euler integration
+#endif
+
 
 void autopilot (void)
   // Autopilot to adjust the engine throttle, parachute and attitude control
@@ -25,6 +37,19 @@ void numerical_dynamics (void)
   // lander's pose. The time step is delta_t (global variable).
 {
   // INSERT YOUR CODE HERE
+  vector3d FGrav = -position.norm * ((MARS_MASS * LANDERMASS * GRAVITY) / (position.abs2()));
+  a = FGrav / LANDERMASS;
+
+#if defined(USEVERLET)
+  vector3d PositionTemp = position;
+  position = 2 * positionNMinus1 - positionNMinus2 + (dt**2)*a;
+  positionNMinus2 = positionNMinus1;
+  positionNMinus1 = PositionTemp;
+  velocity = VELOCITYVERLET;
+#else // Do an euler integration
+  position += velocity * dt;
+  velocity += a * dt;
+#endif
 
   // Here we can apply an autopilot to adjust the thrust, parachute and attitude
   if (autopilot_enabled) autopilot();
