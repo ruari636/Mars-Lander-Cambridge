@@ -13,18 +13,15 @@
 // ahg@eng.cam.ac.uk and gc121@eng.cam.ac.uk.
 
 #include "lander.h"
-double fuel_left = FUEL_CAPACITY;
-#define USEVERLET
 #define FUELMASS FUEL_DENSITY * fuel_left
-#define LANDERMASS UNLOADED_LANDER_MASS + FUELMASS
-#define VELOCITYVERLET (1 / (2 * dt)) * (position - positionNMinus2)
+#define VELOCITYVERLET (1.0 / delta_t) * (position - positionNMinus1)
+#define DRAGCONSTANT(Cd) -0.5 * atmospheric_density(position) * Cd
+#define VELCONSTANT velocity.norm() * velocity.abs2()
+double fuel_left = FUEL_CAPACITY;
+vector3d positionNMinus1;
+using namespace std;
 
-#if defined(USEVERLET)
-  vector3d positionNMinus1 = position - velocity * dt;
-  vector3d positionNMinus2 = position - 2 * velocity * dt;
-#else // Do an euler integration
-#endif
-
+#define USEVERLET
 
 void autopilot (void)
   // Autopilot to adjust the engine throttle, parachute and attitude control
@@ -37,18 +34,22 @@ void numerical_dynamics (void)
   // lander's pose. The time step is delta_t (global variable).
 {
   // INSERT YOUR CODE HERE
-  vector3d FGrav = -position.norm * ((MARS_MASS * LANDERMASS * GRAVITY) / (position.abs2()));
-  a = FGrav / LANDERMASS;
+  double LanderMass = UNLOADED_LANDER_MASS + FUELMASS;
+  vector3d FGrav = -position.norm() * ((MARS_MASS * LanderMass * GRAVITY) / (position.abs2()));
+  vector3d FDragLander = pow(LANDER_SIZE, 2) * DRAGCONSTANT(DRAG_COEF_LANDER) * VELCONSTANT;
+  vector3d FDragChute = pow(LANDER_SIZE, 2) * DRAGCONSTANT(DRAG_COEF_CHUTE) * VELCONSTANT;
+  vector3d acceleration = (FGrav + FDragLander) / LanderMass;
 
 #if defined(USEVERLET)
+  if (simulation_time == 0)
+  {  positionNMinus1 = position - velocity * delta_t - acceleration * delta_t * delta_t; }
   vector3d PositionTemp = position;
-  position = 2 * positionNMinus1 - positionNMinus2 + (dt**2)*a;
-  positionNMinus2 = positionNMinus1;
+  position = 2 * PositionTemp - positionNMinus1 + (delta_t * delta_t) * acceleration;
   positionNMinus1 = PositionTemp;
-  velocity = VELOCITYVERLET;
+  velocity = (position - positionNMinus1) / delta_t;
 #else // Do an euler integration
-  position += velocity * dt;
-  velocity += a * dt;
+  position += velocity * delta_t;
+  velocity += acceleration * delta_t;
 #endif
 
   // Here we can apply an autopilot to adjust the thrust, parachute and attitude
