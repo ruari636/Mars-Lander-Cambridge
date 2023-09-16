@@ -13,11 +13,13 @@
 // ahg@eng.cam.ac.uk and gc121@eng.cam.ac.uk.
 
 #include "lander.h"
-#define FUELMASS FUEL_DENSITY * fuel_left
+#define FUELMASS FUEL_DENSITY * fuel
 #define VELOCITYVERLET (1.0 / delta_t) * (position - positionNMinus1)
-#define DRAGCONSTANT(Cd) -0.5 * atmospheric_density(position) * Cd
+#define DRAGCONSTANT(Cd) -0.5 * atmospheric_density(position) * Cd * M_PI
 #define VELCONSTANT velocity.norm() * velocity.abs2()
-double fuel_left = FUEL_CAPACITY;
+#define LANDERMASS (UNLOADED_LANDER_MASS + FUEL_DENSITY * fuel)
+#define Kp 0.07 * LANDERMASS
+#define Kh 0.05
 vector3d positionNMinus1;
 using namespace std;
 
@@ -27,6 +29,11 @@ void autopilot (void)
   // Autopilot to adjust the engine throttle, parachute and attitude control
 {
   // INSERT YOUR CODE HERE
+  double alt = position.abs() - MARS_RADIUS;
+  double vel_minus_desired_vel = 0.5 + Kh * alt + velocity * position.norm();
+  bool TooFast = vel_minus_desired_vel < 0.0;
+  double Thrust_Desired = vel_minus_desired_vel * Kp + LANDERMASS * (MARS_MASS * LANDERMASS * GRAVITY) / (position.abs2());
+  throttle = (TooFast == true) ? (Thrust_Desired/MAX_THRUST):0.0; //This works but isn't what the task asked for
 }
 
 void numerical_dynamics (void)
@@ -34,11 +41,11 @@ void numerical_dynamics (void)
   // lander's pose. The time step is delta_t (global variable).
 {
   // INSERT YOUR CODE HERE
-  double LanderMass = UNLOADED_LANDER_MASS + FUELMASS;
-  vector3d FGrav = -position.norm() * ((MARS_MASS * LanderMass * GRAVITY) / (position.abs2()));
+  vector3d FGrav = -position.norm() * ((MARS_MASS * LANDERMASS * GRAVITY) / (position.abs2()));
   vector3d FDragLander = pow(LANDER_SIZE, 2) * DRAGCONSTANT(DRAG_COEF_LANDER) * VELCONSTANT;
   vector3d FDragChute = pow(LANDER_SIZE, 2) * DRAGCONSTANT(DRAG_COEF_CHUTE) * VELCONSTANT;
-  vector3d acceleration = (FGrav + FDragLander) / LanderMass;
+  vector3d Thrust = thrust_wrt_world();
+  vector3d acceleration = (FGrav + FDragLander + Thrust) / (double)LANDERMASS;
 
 #if defined(USEVERLET)
   if (simulation_time == 0)
