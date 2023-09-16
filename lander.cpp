@@ -20,9 +20,9 @@ using namespace std;
 #define USEVERLET
 
 void autopilot (void)
-  // Autopilot to adjust the engine throttle, parachute and attitude control
 {
-  // INSERT YOUR CODE HERE
+  UpdateHeights();
+  face_travel_direction();
   double alt = position.abs() - MARS_RADIUS;
   double vel_minus_desired_vel = 0.5 + Kh * alt + velocity * position.norm();
   bool TooFast = vel_minus_desired_vel < 0.0;
@@ -33,8 +33,15 @@ void autopilot (void)
   }
   else
   {
-    throttle = (TooFast == true) ? (Thrust_Desired/MAX_THRUST):0.0; //This works but isn't what the task asked for
+    throttle = (TooFast == true) ? (Thrust_Desired/MAX_THRUST):0.0;
   }
+
+  if (Heights_Updated) // This means we are in a permanent orbit as
+                       // otherwise perigee and apogee wouldn't have been measured
+  {
+    // Put us into a landing orbit
+  }
+
   if ( safe_to_deploy_parachute() && 0.5 + Kh * alt < MAX_PARACHUTE_SPEED && alt < 20000 )
   {
     parachute_status = DEPLOYED;
@@ -68,7 +75,6 @@ void numerical_dynamics (void)
   if (autopilot_enabled) 
   {
     stabilized_attitude = false;
-    face_travel_direction();
     autopilot();
   }
   else

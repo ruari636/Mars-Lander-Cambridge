@@ -1,4 +1,6 @@
 #include "lander.h"
+#include "float.h"
+
 #ifndef LANDER_SPECIAL_FUNC_H
 #define LANDER_SPECIAL_FUNC_H
 
@@ -11,11 +13,16 @@
 #define Kh 0.05
 #define NSperLITRE (MAX_THRUST / FUEL_RATE_AT_MAX_THRUST)
 
-double calculateDeltaV(const vector3d& position, const vector3d& velocity,
-                          double altitudeThreshold);
+static bool Heights_Updated = false;
+static double Greatest_Height = 0.0;
+static double Lowest_Height = DBL_MAX;
+
+double calculateDeltaVApogee(double Apogee, double Perigee, double NewPerigee);
 
 void face_travel_direction();
 
 bool ReachedEscapeVelocity();
+
+void UpdateHeights(); // returns false when we have gathered all info about current elliptical orbit
 
 #endif

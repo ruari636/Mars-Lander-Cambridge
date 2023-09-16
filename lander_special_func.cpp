@@ -1,5 +1,14 @@
 #include "lander_special_func.h"
 
+double calculateDeltaVApogee(double Apogee, double Perigee, double NewPerigee)
+{
+    double oldVApogee = 2 * GRAVITY * MARS_MASS * (1/Perigee - 1/Apogee) / 
+                        (1 - (Perigee * Perigee) / (Apogee * Apogee));
+    double newVApogee = 2 * GRAVITY * MARS_MASS * (1/NewPerigee - 1/Apogee) / 
+                        (1 - (NewPerigee * NewPerigee) / (Apogee * Apogee));
+    return oldVApogee - newVApogee;
+}
+
 void face_travel_direction()
 {
   vector3d up, left, out;
@@ -35,31 +44,35 @@ bool ReachedEscapeVelocity()
     return 0.5 * velocity.abs2() > GRAVITY * MARS_MASS / position.abs();
 }
 
-// Function to calculate the impulse required for the maneuver
-double calculateDeltaV(const vector3d& position, const vector3d& velocity, double altitudeThreshold, double fuel) {
-    // Constants
-    const double FUEL_FORCE = NSperLITRE; // Force produced by burning one unit of fuel (adjust as needed)
+extern double climb_speed;
+bool climbing_done = false;
+bool descending_done = false;
+int done = 0;
 
-    // Calculate the current mass of the lander
-    double landerMass = UNLOADED_LANDER_MASS + FUEL_DENSITY * fuel;
-
-    // Calculate the specific orbital energy
-    double r = position.abs();
-    double v = velocity.abs();
-    double specificOrbitalEnergy = 0.5 * v * v - GRAVITY * MARS_MASS / r;
-
-    // Calculate the velocity needed at the highest point to achieve the desired altitude threshold
-    double rThreshold = r - altitudeThreshold;
-    double vThreshold = sqrt(2 * GRAVITY * MARS_MASS / rThreshold);
-
-    // Calculate the required velocity change (impulse) at the highest point
-    double deltaV = vThreshold - v;
-
-    // Calculate the required impulse to account for fuel consumption
-    double deltaV_fuel = (landerMass / (landerMass - FUEL_DENSITY)) * (exp(FUEL_FORCE / (landerMass - FUEL_DENSITY)) - 1);
-
-    // Combine the two impulses
-    deltaV = deltaV + deltaV_fuel; // Assuming fuel is burned along the x-axis
-
-    return deltaV;
+void UpdateHeights()
+{
+    if (!Heights_Updated)
+    {
+        if (climb_speed > 0.0)
+        {
+            climbing_done = true;
+            Greatest_Height = (position.abs() > Greatest_Height) ? position.abs() : Greatest_Height;
+            if (descending_done)
+            {
+                descending_done = false;
+                done++;
+            }
+        }
+        if (climb_speed < 0.0)
+        {
+            descending_done = true;
+            Lowest_Height = (position.abs() < Lowest_Height) ? position.abs() : Lowest_Height;
+            if (climbing_done)
+            {
+                climbing_done = false;
+                done++;
+            }
+        }
+    }
+    Heights_Updated != 2;
 }
