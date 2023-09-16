@@ -12,6 +12,9 @@
 // to receive any suggested modifications by private correspondence to
 // ahg@eng.cam.ac.uk and gc121@eng.cam.ac.uk.
 
+#ifndef LANDER_H
+#define LANDER_H
+
 #ifdef _WIN32
 #define _USE_MATH_DEFINES
 #include <windows.h>
@@ -246,3 +249,5 @@ void closeup_mouse_button (int button, int state, int x, int y);
 void closeup_mouse_motion (int x, int y);
 void glut_special (int key, int x, int y);
 void glut_key (unsigned char k, int x, int y);
+
+#endif

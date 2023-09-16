@@ -4,9 +4,9 @@ PLATFORM = `uname`
 
 all:	lander spring
 
-lander: lander.o lander_graphics.o
+lander: lander.o lander_graphics.o lander_special_func.o
 	@if [ ${PLATFORM} = "Linux" ]; \
-	then $(CC) -o lander lander.o lander_graphics.o ${CCSW} -lGL -lGLU -lglut; \
+	then $(CC) -o lander lander.o lander_graphics.o lander_special_func.o ${CCSW} -lGL -lGLU -lglut; \
 	echo Linking for Linux; \
 	elif [ ${PLATFORM} = "Darwin" ]; \
 	then $(CC) -o lander lander.o lander_graphics.o ${CCSW} -framework GLUT -framework OpenGL; \

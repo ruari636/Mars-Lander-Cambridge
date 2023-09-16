@@ -12,14 +12,8 @@
 // to receive any suggested modifications by private correspondence to
 // ahg@eng.cam.ac.uk and gc121@eng.cam.ac.uk.
 
+#include "lander_special_func.h"
 #include "lander.h"
-#define FUELMASS FUEL_DENSITY * fuel
-#define VELOCITYVERLET (1.0 / delta_t) * (position - positionNMinus1)
-#define DRAGCONSTANT(Cd) -0.5 * atmospheric_density(position) * Cd * M_PI
-#define VELCONSTANT velocity.norm() * velocity.abs2()
-#define LANDERMASS (UNLOADED_LANDER_MASS + FUEL_DENSITY * fuel)
-#define Kp 0.07 * LANDERMASS
-#define Kh 0.05
 vector3d positionNMinus1;
 using namespace std;
 
@@ -33,7 +27,18 @@ void autopilot (void)
   double vel_minus_desired_vel = 0.5 + Kh * alt + velocity * position.norm();
   bool TooFast = vel_minus_desired_vel < 0.0;
   double Thrust_Desired = vel_minus_desired_vel * Kp + LANDERMASS * (MARS_MASS * LANDERMASS * GRAVITY) / (position.abs2());
-  throttle = (TooFast == true) ? (Thrust_Desired/MAX_THRUST):0.0; //This works but isn't what the task asked for
+  if (ReachedEscapeVelocity())
+  {
+    throttle = 1.0;
+  }
+  else
+  {
+    throttle = (TooFast == true) ? (Thrust_Desired/MAX_THRUST):0.0; //This works but isn't what the task asked for
+  }
+  if ( safe_to_deploy_parachute() && 0.5 + Kh * alt < MAX_PARACHUTE_SPEED && alt < 20000 )
+  {
+    parachute_status = DEPLOYED;
+  }
 }
 
 void numerical_dynamics (void)
@@ -43,7 +48,7 @@ void numerical_dynamics (void)
   // INSERT YOUR CODE HERE
   vector3d FGrav = -position.norm() * ((MARS_MASS * LANDERMASS * GRAVITY) / (position.abs2()));
   vector3d FDragLander = pow(LANDER_SIZE, 2) * DRAGCONSTANT(DRAG_COEF_LANDER) * VELCONSTANT;
-  vector3d FDragChute = pow(LANDER_SIZE, 2) * DRAGCONSTANT(DRAG_COEF_CHUTE) * VELCONSTANT;
+  vector3d FDragChute = pow(LANDER_SIZE * 2, 2) * 5 * DRAGCONSTANT(DRAG_COEF_CHUTE) * VELCONSTANT;
   vector3d Thrust = thrust_wrt_world();
   vector3d acceleration = (FGrav + FDragLander + Thrust) / (double)LANDERMASS;
 
@@ -60,10 +65,18 @@ void numerical_dynamics (void)
 #endif
 
   // Here we can apply an autopilot to adjust the thrust, parachute and attitude
-  if (autopilot_enabled) autopilot();
+  if (autopilot_enabled) 
+  {
+    stabilized_attitude = false;
+    face_travel_direction();
+    autopilot();
+  }
+  else
+  {
+    // Here we can apply 3-axis stabilization to ensure the base is always pointing downwards
+    if (stabilized_attitude) attitude_stabilization();
+  }
 
-  // Here we can apply 3-axis stabilization to ensure the base is always pointing downwards
-  if (stabilized_attitude) attitude_stabilization();
 }
 
 void initialize_simulation (void)
@@ -159,10 +172,10 @@ void initialize_simulation (void)
   case 6:
     position = vector3d(20428000.0, 0.0, 0.0);
     velocity = vector3d(0.0, 1446.0, 0.0);
-    orientation = vector3d(0.0, 0.0, 90.0);
+    orientation = vector3d(0.0, 180.0, 0.0);
     delta_t = 0.1;
     parachute_status = NOT_DEPLOYED;
-    stabilized_attitude = true;
+    stabilized_attitude = false;
     autopilot_enabled = false;
     break;
 
