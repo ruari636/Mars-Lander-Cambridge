@@ -7,6 +7,9 @@ double Lowest_Height = DBL_MAX;
 bool Orbit_Change_Burn = false;
 bool debugBurner = false;
 double Planned_Fuel_Left;
+uint16_t done = 0; // variable containing ored together event flags
+double Time_Burn_Started;
+double Last_Throttle;
 
 double calculateNewVApogee(double Apogee, double NewPerigee)
 {
@@ -74,12 +77,26 @@ void PreventLanderEscape()
 {
     if (ReachedEscapeVelocity())
     {
-        throttle = 1.0;
+        //throttle = 1.0;
     }
 }
 
+
+
 void PreventCrashLanding()
 {
+    /*if (!Orbit_Change_Burn)
+    {
+        double vel_minus_desired_vel = 5 + Kh * Altitude + velocity * position.norm();
+        bool TooFast = vel_minus_desired_vel < 0.0;
+        double Thrust_Desired = vel_minus_desired_vel * Kp + LANDERMASS * (MARS_MASS * LANDERMASS * GRAVITY) / (position.abs2());
+        throttle = (TooFast == true) ? min((Thrust_Desired/MAX_THRUST), 1.0):0.0;
+        if (Altitude < 5.0)
+        {
+            throttle = 0.0;
+            if (StartSuicideBurn()) throttle = 1.0;
+        }
+    }*/
     Altitude = position.abs() - MARS_RADIUS;
     double vel_minus_desired_vel = 0.5 + Kh * Altitude + velocity * position.norm();
     bool TooFast = vel_minus_desired_vel < 0.0;
@@ -94,7 +111,7 @@ void PlanDeorbitIfInPermanentOrbit()
     {
         // Put us into a landing orbit
         double NewPerigee = 100000 + MARS_RADIUS; // 100km should do
-        if (position.abs() > Greatest_Height * 0.95)
+        if (position.abs() > Greatest_Height * 0.98)
         {
             double fuelToBurn = calculateFuelBurnedForLowerPerigee(Greatest_Height, 
                                                                 Lowest_Height, NewPerigee);
@@ -116,7 +133,6 @@ void AutoDeployParachuteWhenReady()
 extern double climb_speed;
 bool climbing_done = false;
 bool descending_done = false;
-int done = 0;
 
 void UpdateHeights()
 {
@@ -129,7 +145,7 @@ void UpdateHeights()
             if (descending_done)
             {
                 descending_done = false;
-                done++;
+                done |= 0x0001;
             }
         }
         if (climb_speed < 0.0)
@@ -139,10 +155,10 @@ void UpdateHeights()
             if (climbing_done)
             {
                 climbing_done = false;
-                done++;
+                done |= 0x0002;
             }
         }
-        Heights_Updated = done == 2;
+        Heights_Updated = (done & 3) == 1;
     }
 }
 
@@ -154,4 +170,37 @@ void ClearHeights()
     Heights_Updated = false;
     Greatest_Height = 0.0;
     Lowest_Height = DBL_MAX;
+}
+
+extern vector3d FGrav;
+extern vector3d FDragLander;
+extern vector3d FDragChute;
+bool SuicideBurnStarted = false;
+
+double avgLanderMassInBurn;
+double accEstimate;
+double ForceEstimate;
+double DragEstimate;
+double EstimatedTimeToBurn;
+
+void IterativeSuicideBurnEstimator()
+{
+    for (int i = 0; i < 5; i++)
+    {
+        ForceEstimate = MAX_THRUST - (MARS_MASS * avgLanderMassInBurn * GRAVITY) / (MARS_RADIUS * MARS_RADIUS);
+        DragEstimate = (FDragLander.abs() + FDragChute.abs()) * 0.01;
+        EstimatedTimeToBurn = velocity.abs() / 
+            ((ForceEstimate + DragEstimate) / avgLanderMassInBurn); // t = -u/a when v = 0
+        avgLanderMassInBurn = LANDERMASS - 
+                (EstimatedTimeToBurn * FUEL_RATE_AT_MAX_THRUST * FUEL_DENSITY) / 1.5;
+    }
+}
+
+bool StartSuicideBurn()
+{
+    avgLanderMassInBurn = LANDERMASS;
+    double KE = 0.5 * LANDERMASS * velocity.abs2();
+    IterativeSuicideBurnEstimator();
+    SuicideBurnStarted = ((ForceEstimate + DragEstimate) * Altitude < KE) && Altitude < 15000 | SuicideBurnStarted;
+    return SuicideBurnStarted;
 }

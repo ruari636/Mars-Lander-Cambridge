@@ -12,6 +12,7 @@
 #define Kp 0.07 * LANDERMASS
 #define Kh 0.05
 #define NSperLITRE (MAX_THRUST / FUEL_RATE_AT_MAX_THRUST)
+#define LAGBURNCORRECTION 0.5
 
 double calculateNewVApogee(double Apogee, double NewPerigee);
 
@@ -34,5 +35,7 @@ void AutoDeployParachuteWhenReady();
 void UpdateHeights(); // returns false when we have gathered all info about current elliptical orbit
 
 void ClearHeights();
+
+bool StartSuicideBurn();
 
 #endif

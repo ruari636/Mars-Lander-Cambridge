@@ -19,12 +19,13 @@ using namespace std;
 
 #define USEVERLET
 
+bool SlowedDown = false;
+
 void autopilot (void)
 {
   
   UpdateHeights();
   face_travel_direction();
-  PreventCrashLanding();
   PreventLanderEscape();
   PlanDeorbitIfInPermanentOrbit(); // Sets Orbit_Change_Burn to true if a deorbit
                                    // is possible with remaining fuel
@@ -40,20 +41,41 @@ void autopilot (void)
       throttle = 0.0;
     }
   }
-  if (debugBurner) throttle = 1.0;
+  if (StartSuicideBurn() && !SlowedDown)
+  {
+    if (abs(velocity * position) > 10) 
+    {
+      throttle = 1.0;
+    }
+    else 
+    {
+      SlowedDown = true;
+    }
+  }
+  if (SlowedDown)
+  {
+    PreventCrashLanding();
+  }
   AutoDeployParachuteWhenReady();
 }
+
+vector3d FGrav;
+vector3d FDragLander;
+vector3d FDragChute;
+vector3d Thrust;
+vector3d acceleration;
 
 void numerical_dynamics (void)
   // This is the function that performs the numerical integration to update the
   // lander's pose. The time step is delta_t (global variable).
 {
   // INSERT YOUR CODE HERE
-  vector3d FGrav = -position.norm() * ((MARS_MASS * LANDERMASS * GRAVITY) / (position.abs2()));
-  vector3d FDragLander = pow(LANDER_SIZE, 2) * DRAGCONSTANT(DRAG_COEF_LANDER) * VELCONSTANT;
-  vector3d FDragChute = pow(LANDER_SIZE * 2, 2) * 5 * DRAGCONSTANT(DRAG_COEF_CHUTE) * VELCONSTANT;
-  vector3d Thrust = thrust_wrt_world();
-  vector3d acceleration = (FGrav + FDragLander + Thrust) / (double)LANDERMASS;
+  FGrav = -position.norm() * ((MARS_MASS * LANDERMASS * GRAVITY) / (position.abs2()));
+  FDragLander = pow(LANDER_SIZE, 2) * DRAGCONSTANT(DRAG_COEF_LANDER) * VELCONSTANT;
+  FDragChute = pow(LANDER_SIZE * 2, 2) * 5 * DRAGCONSTANT(DRAG_COEF_CHUTE) * VELCONSTANT;
+  Thrust = thrust_wrt_world();
+  acceleration = (FGrav + FDragLander + Thrust) / (double)LANDERMASS;
+  Altitude = position.abs() - MARS_RADIUS;
 
 #if defined(USEVERLET)
   if (simulation_time == 0)
@@ -84,6 +106,7 @@ void numerical_dynamics (void)
 void initialize_simulation (void)
   // Lander pose initialization - selects one of 10 possible scenarios
 {
+  ClearHeights();
   // The parameters to set are:
   // position - in Cartesian planetary coordinate system (m)
   // velocity - in Cartesian planetary coordinate system (m/s)
