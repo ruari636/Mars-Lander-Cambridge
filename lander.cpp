@@ -30,16 +30,17 @@ void autopilot (void)
                                    // is possible with remaining fuel
   if (Orbit_Change_Burn)
   {
-    if (Planned_Fuel_Left <= fuel)
+    if (Planned_Fuel_Left <= fuel)// && Planned_Fuel_Left > 0.0)
     {
       throttle = 1.0;
     }
     else
     {
-      //ClearHeights(); // prevents further de-orbit plans unless we find ourselves in one again
+      Orbit_Change_Burn = false;
+      throttle = 0.0;
     }
-    throttle = 1.0;
   }
+  if (debugBurner) throttle = 1.0;
   AutoDeployParachuteWhenReady();
 }
 
@@ -101,7 +102,7 @@ void initialize_simulation (void)
   scenario_description[7] = "";
   scenario_description[8] = "";
   scenario_description[9] = "";
-
+  
   switch (scenario) {
 
   case 0:
@@ -190,4 +191,6 @@ void initialize_simulation (void)
     break;
 
   }
+  Lowest_Height = position.abs();
+  Greatest_Height = position.abs();
 }

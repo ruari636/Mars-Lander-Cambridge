@@ -1,9 +1,17 @@
 #include "lander_special_func.h"
 
+double Altitude;
+bool Heights_Updated = false;
+double Greatest_Height = 0.0;
+double Lowest_Height = DBL_MAX;
+bool Orbit_Change_Burn = false;
+bool debugBurner = false;
+double Planned_Fuel_Left;
+
 double calculateNewVApogee(double Apogee, double NewPerigee)
 {
-    return 2 * GRAVITY * MARS_MASS * (1/NewPerigee - 1/Apogee) / 
-                        (1 - (NewPerigee * NewPerigee) / (Apogee * Apogee));
+    return sqrt(GRAVITY * MARS_MASS * (2 * NewPerigee) / 
+                        (Apogee * (NewPerigee + Apogee)));
 }
 
 double rocketEquationForFuel(double deltaV)
@@ -12,12 +20,12 @@ double rocketEquationForFuel(double deltaV)
     // exp(deltaV/Vout) = m1/m2
     // deltaM = fuelToBurn = m1(exp(-deltaV/Vout) - 1)
     // m1 = LANDERMASS, m2 = LANDERMASS - fuelNeeded
-    // vout = impulsePerLitre / massPerLitre (impulsePerLitre == kilogramsPerLitre * metresPerSecond)
     // maxFuelForce / maxFuelBurnRate = impulsePerLitre
     // impulseNeeded / impulsePerLitre = fuelNeeded
-    double Vout = MAX_THRUST / FUEL_DENSITY;
-    double deltaM = LANDERMASS * (exp( -deltaV / Vout) - 1);
-    return deltaM;
+    // thrust = dm/dt * Vout, Vout = maxThrust / fuelRateAtMaxThrust (kg/s)
+    double Vout = MAX_THRUST / (FUEL_RATE_AT_MAX_THRUST * FUEL_DENSITY);
+    double deltaM = LANDERMASS / exp(deltaV/Vout) - LANDERMASS;
+    return deltaM; // We want to know how much fuel to burn
 }
 
 double calculateFuelBurnedForLowerPerigee(double Apogee, double Perigee, double NewPerigee)
@@ -85,15 +93,15 @@ void PlanDeorbitIfInPermanentOrbit()
                        // otherwise perigee and apogee wouldn't have been measured
     {
         // Put us into a landing orbit
-        double NewPerigee = 40000; // 40km should do
-        if (position.abs() > Greatest_Height * 0.99)
+        double NewPerigee = 100000 + MARS_RADIUS; // 100km should do
+        if (position.abs() > Greatest_Height * 0.95)
         {
             double fuelToBurn = calculateFuelBurnedForLowerPerigee(Greatest_Height, 
                                                                 Lowest_Height, NewPerigee);
-            Planned_Fuel_Left = fuel - fuelToBurn / FUEL_CAPACITY;
-            Orbit_Change_Burn = true;//Planned_Fuel_Left > 0.0;
+            Planned_Fuel_Left = fuel - (fuelToBurn / (FUEL_CAPACITY * FUEL_DENSITY));
+            Orbit_Change_Burn = Planned_Fuel_Left > 0.0;
+            ClearHeights();
         }
-        Orbit_Change_Burn = true;
     }
 }
 
@@ -114,10 +122,10 @@ void UpdateHeights()
 {
     if (!Heights_Updated)
     {
-        if (climb_speed > 0.0)
+        if (climb_speed >= 0.0)
         {
             climbing_done = true;
-            Greatest_Height = (position.abs() > Greatest_Height) ? position.abs() : Greatest_Height;
+            Greatest_Height = max(position.abs(), Greatest_Height);
             if (descending_done)
             {
                 descending_done = false;
@@ -127,14 +135,14 @@ void UpdateHeights()
         if (climb_speed < 0.0)
         {
             descending_done = true;
-            Lowest_Height = (position.abs() < Lowest_Height) ? position.abs() : Lowest_Height;
+            Lowest_Height = min(position.abs(), Lowest_Height);
             if (climbing_done)
             {
                 climbing_done = false;
                 done++;
             }
         }
-        Heights_Updated = true;
+        Heights_Updated = done == 2;
     }
 }
 

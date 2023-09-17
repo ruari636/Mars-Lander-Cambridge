@@ -196,6 +196,14 @@ extern vector3d position, orientation, velocity;
 extern parachute_status_t parachute_status;
 extern int stabilized_attitude_angle;
 
+extern double Altitude;
+extern bool Heights_Updated;
+extern double Greatest_Height;
+extern double Lowest_Height;
+extern bool Orbit_Change_Burn;
+extern double Planned_Fuel_Left;
+extern bool debugBurner;
+
 #endif
 
 // Function prototypes

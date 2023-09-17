@@ -13,13 +13,6 @@
 #define Kh 0.05
 #define NSperLITRE (MAX_THRUST / FUEL_RATE_AT_MAX_THRUST)
 
-static double Altitude;
-static bool Heights_Updated = false;
-static double Greatest_Height = 0.0;
-static double Lowest_Height = DBL_MAX;
-static bool Orbit_Change_Burn = false;
-static double Planned_Fuel_Left;
-
 double calculateNewVApogee(double Apogee, double NewPerigee);
 
 double rocketEquationForFuel(double deltaV); // returns how much fuel to burn
