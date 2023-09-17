@@ -19,7 +19,8 @@ using namespace std;
 
 #define USEVERLET
 
-bool SlowedDown = false;
+bool SlowedDown;
+extern bool SuicideBurnStarted;
 
 void autopilot (void)
 {
@@ -41,20 +42,18 @@ void autopilot (void)
       throttle = 0.0;
     }
   }
-  if (StartSuicideBurn() && !SlowedDown)
-  {
-    if (abs(velocity * position) > 10) 
-    {
-      throttle = 1.0;
-    }
-    else 
-    {
-      SlowedDown = true;
-    }
-  }
+
   if (SlowedDown)
   {
     PreventCrashLanding();
+  }
+  else if (StartSuicideBurn())
+  {
+    //if (altitude < 50.0) 
+    //{
+      SlowedDown = true; throttle = 0.0;
+    //}
+    //else { throttle = 1.0; }
   }
   AutoDeployParachuteWhenReady();
 }
@@ -75,8 +74,7 @@ void numerical_dynamics (void)
   FDragChute = pow(LANDER_SIZE * 2, 2) * 5 * DRAGCONSTANT(DRAG_COEF_CHUTE) * VELCONSTANT;
   Thrust = thrust_wrt_world();
   acceleration = (FGrav + FDragLander + Thrust) / (double)LANDERMASS;
-  Altitude = position.abs() - MARS_RADIUS;
-
+  
 #if defined(USEVERLET)
   if (simulation_time == 0)
   {  positionNMinus1 = position - velocity * delta_t - acceleration * delta_t * delta_t; }
@@ -107,6 +105,7 @@ void initialize_simulation (void)
   // Lander pose initialization - selects one of 10 possible scenarios
 {
   ClearHeights();
+  SlowedDown = false;
   // The parameters to set are:
   // position - in Cartesian planetary coordinate system (m)
   // velocity - in Cartesian planetary coordinate system (m/s)

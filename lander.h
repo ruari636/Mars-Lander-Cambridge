@@ -196,7 +196,7 @@ extern vector3d position, orientation, velocity;
 extern parachute_status_t parachute_status;
 extern int stabilized_attitude_angle;
 
-extern double Altitude;
+extern double altitude;
 extern bool Heights_Updated;
 extern double Greatest_Height;
 extern double Lowest_Height;

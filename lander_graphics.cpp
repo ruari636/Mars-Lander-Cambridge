@@ -683,7 +683,7 @@ void draw_instrument_window (void)
   glClear(GL_COLOR_BUFFER_BIT);
 
   // Draw altimeter
-  draw_dial (view_width+GAP-400, INSTRUMENT_HEIGHT/2, altitude, "Altitude", "m");
+  draw_dial (view_width+GAP-400, INSTRUMENT_HEIGHT/2, altitude, "altitude", "m");
 
   // Draw auto-pilot lamp
   draw_indicator_lamp (view_width+GAP-400, INSTRUMENT_HEIGHT-18, "Auto-pilot off", "Auto-pilot on", autopilot_enabled);

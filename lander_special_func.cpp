@@ -1,6 +1,6 @@
 #include "lander_special_func.h"
+#include "lander.h"
 
-double Altitude;
 bool Heights_Updated = false;
 double Greatest_Height = 0.0;
 double Lowest_Height = DBL_MAX;
@@ -81,27 +81,17 @@ void PreventLanderEscape()
     }
 }
 
-
+void ClampVelocity(double clamp) // assuming down is positive
+{
+    //if (velocity * position <= 0.0) throttle = (velocity.abs() > clamp) ? 1.0:0.0;
+}
 
 void PreventCrashLanding()
 {
-    /*if (!Orbit_Change_Burn)
-    {
-        double vel_minus_desired_vel = 5 + Kh * Altitude + velocity * position.norm();
-        bool TooFast = vel_minus_desired_vel < 0.0;
-        double Thrust_Desired = vel_minus_desired_vel * Kp + LANDERMASS * (MARS_MASS * LANDERMASS * GRAVITY) / (position.abs2());
-        throttle = (TooFast == true) ? min((Thrust_Desired/MAX_THRUST), 1.0):0.0;
-        if (Altitude < 5.0)
-        {
-            throttle = 0.0;
-            if (StartSuicideBurn()) throttle = 1.0;
-        }
-    }*/
-    Altitude = position.abs() - MARS_RADIUS;
-    double vel_minus_desired_vel = 0.5 + Kh * Altitude + velocity * position.norm();
+    double vel_minus_desired_vel = 0.5 + Kh * altitude + velocity * position.norm();
     bool TooFast = vel_minus_desired_vel < 0.0;
-    double Thrust_Desired = vel_minus_desired_vel * Kp + LANDERMASS * (MARS_MASS * LANDERMASS * GRAVITY) / (position.abs2());
-    throttle = (TooFast == true) ? (Thrust_Desired/MAX_THRUST):0.0;
+    double Thrust_Desired = -vel_minus_desired_vel * Kp + (MARS_MASS * LANDERMASS * GRAVITY) / (position.abs2() * MAX_THRUST);
+    throttle = (TooFast == true) ? min((Thrust_Desired), 1.0):0.0;
 }
 
 void PlanDeorbitIfInPermanentOrbit()
@@ -124,7 +114,7 @@ void PlanDeorbitIfInPermanentOrbit()
 
 void AutoDeployParachuteWhenReady()
 {
-    if ( safe_to_deploy_parachute() && 0.5 + Kh * Altitude < MAX_PARACHUTE_SPEED && Altitude < 20000 )
+    if ( safe_to_deploy_parachute() && 0.5 + Kh * altitude < MAX_PARACHUTE_SPEED && altitude < 20000 )
     {
         parachute_status = DEPLOYED;
     }
@@ -198,9 +188,12 @@ void IterativeSuicideBurnEstimator()
 
 bool StartSuicideBurn()
 {
-    avgLanderMassInBurn = LANDERMASS;
-    double KE = 0.5 * LANDERMASS * velocity.abs2();
-    IterativeSuicideBurnEstimator();
-    SuicideBurnStarted = ((ForceEstimate + DragEstimate) * Altitude < KE) && Altitude < 15000 | SuicideBurnStarted;
+    if (velocity * position < 0.0)
+    {
+        avgLanderMassInBurn = LANDERMASS;
+        double KE = 0.5 * LANDERMASS * velocity.abs2();
+        IterativeSuicideBurnEstimator();
+        SuicideBurnStarted = ((ForceEstimate + DragEstimate) * altitude < KE) && altitude < 15000 | SuicideBurnStarted;
+    }
     return SuicideBurnStarted;
 }
