@@ -13,16 +13,33 @@
 #define Kh 0.05
 #define NSperLITRE (MAX_THRUST / FUEL_RATE_AT_MAX_THRUST)
 
+static double Altitude;
 static bool Heights_Updated = false;
 static double Greatest_Height = 0.0;
 static double Lowest_Height = DBL_MAX;
+static bool Orbit_Change_Burn = false;
+static double Planned_Fuel_Left;
 
-double calculateDeltaVApogee(double Apogee, double Perigee, double NewPerigee);
+double calculateNewVApogee(double Apogee, double NewPerigee);
+
+double rocketEquationForFuel(double deltaV); // returns how much fuel to burn
+
+double calculateFuelBurnedForLowerPerigee(double Apogee, double Perigee, double NewPerigee);
 
 void face_travel_direction();
 
 bool ReachedEscapeVelocity();
 
+void PreventLanderEscape();
+
+void PreventCrashLanding();
+
+void PlanDeorbitIfInPermanentOrbit();
+
+void AutoDeployParachuteWhenReady();
+
 void UpdateHeights(); // returns false when we have gathered all info about current elliptical orbit
+
+void ClearHeights();
 
 #endif

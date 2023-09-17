@@ -21,31 +21,26 @@ using namespace std;
 
 void autopilot (void)
 {
+  
   UpdateHeights();
   face_travel_direction();
-  double alt = position.abs() - MARS_RADIUS;
-  double vel_minus_desired_vel = 0.5 + Kh * alt + velocity * position.norm();
-  bool TooFast = vel_minus_desired_vel < 0.0;
-  double Thrust_Desired = vel_minus_desired_vel * Kp + LANDERMASS * (MARS_MASS * LANDERMASS * GRAVITY) / (position.abs2());
-  if (ReachedEscapeVelocity())
+  PreventCrashLanding();
+  PreventLanderEscape();
+  PlanDeorbitIfInPermanentOrbit(); // Sets Orbit_Change_Burn to true if a deorbit
+                                   // is possible with remaining fuel
+  if (Orbit_Change_Burn)
   {
+    if (Planned_Fuel_Left <= fuel)
+    {
+      throttle = 1.0;
+    }
+    else
+    {
+      //ClearHeights(); // prevents further de-orbit plans unless we find ourselves in one again
+    }
     throttle = 1.0;
   }
-  else
-  {
-    throttle = (TooFast == true) ? (Thrust_Desired/MAX_THRUST):0.0;
-  }
-
-  if (Heights_Updated) // This means we are in a permanent orbit as
-                       // otherwise perigee and apogee wouldn't have been measured
-  {
-    // Put us into a landing orbit
-  }
-
-  if ( safe_to_deploy_parachute() && 0.5 + Kh * alt < MAX_PARACHUTE_SPEED && alt < 20000 )
-  {
-    parachute_status = DEPLOYED;
-  }
+  AutoDeployParachuteWhenReady();
 }
 
 void numerical_dynamics (void)

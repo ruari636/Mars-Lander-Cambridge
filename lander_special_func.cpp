@@ -1,12 +1,30 @@
 #include "lander_special_func.h"
 
-double calculateDeltaVApogee(double Apogee, double Perigee, double NewPerigee)
+double calculateNewVApogee(double Apogee, double NewPerigee)
 {
-    double oldVApogee = 2 * GRAVITY * MARS_MASS * (1/Perigee - 1/Apogee) / 
-                        (1 - (Perigee * Perigee) / (Apogee * Apogee));
-    double newVApogee = 2 * GRAVITY * MARS_MASS * (1/NewPerigee - 1/Apogee) / 
+    return 2 * GRAVITY * MARS_MASS * (1/NewPerigee - 1/Apogee) / 
                         (1 - (NewPerigee * NewPerigee) / (Apogee * Apogee));
-    return oldVApogee - newVApogee;
+}
+
+double rocketEquationForFuel(double deltaV)
+{
+    // ln(m1/m2) * Vout = deltaV
+    // exp(deltaV/Vout) = m1/m2
+    // deltaM = fuelToBurn = m1(exp(-deltaV/Vout) - 1)
+    // m1 = LANDERMASS, m2 = LANDERMASS - fuelNeeded
+    // vout = impulsePerLitre / massPerLitre (impulsePerLitre == kilogramsPerLitre * metresPerSecond)
+    // maxFuelForce / maxFuelBurnRate = impulsePerLitre
+    // impulseNeeded / impulsePerLitre = fuelNeeded
+    double Vout = MAX_THRUST / FUEL_DENSITY;
+    double deltaM = LANDERMASS * (exp( -deltaV / Vout) - 1);
+    return deltaM;
+}
+
+double calculateFuelBurnedForLowerPerigee(double Apogee, double Perigee, double NewPerigee)
+{
+    double v1 = calculateNewVApogee(Apogee, Perigee);
+    double v2 = calculateNewVApogee(Apogee, NewPerigee);
+    return rocketEquationForFuel(v2 - v1);
 }
 
 void face_travel_direction()
@@ -44,6 +62,49 @@ bool ReachedEscapeVelocity()
     return 0.5 * velocity.abs2() > GRAVITY * MARS_MASS / position.abs();
 }
 
+void PreventLanderEscape()
+{
+    if (ReachedEscapeVelocity())
+    {
+        throttle = 1.0;
+    }
+}
+
+void PreventCrashLanding()
+{
+    Altitude = position.abs() - MARS_RADIUS;
+    double vel_minus_desired_vel = 0.5 + Kh * Altitude + velocity * position.norm();
+    bool TooFast = vel_minus_desired_vel < 0.0;
+    double Thrust_Desired = vel_minus_desired_vel * Kp + LANDERMASS * (MARS_MASS * LANDERMASS * GRAVITY) / (position.abs2());
+    throttle = (TooFast == true) ? (Thrust_Desired/MAX_THRUST):0.0;
+}
+
+void PlanDeorbitIfInPermanentOrbit()
+{
+    if (Heights_Updated) // This means we are in a permanent orbit as
+                       // otherwise perigee and apogee wouldn't have been measured
+    {
+        // Put us into a landing orbit
+        double NewPerigee = 40000; // 40km should do
+        if (position.abs() > Greatest_Height * 0.99)
+        {
+            double fuelToBurn = calculateFuelBurnedForLowerPerigee(Greatest_Height, 
+                                                                Lowest_Height, NewPerigee);
+            Planned_Fuel_Left = fuel - fuelToBurn / FUEL_CAPACITY;
+            Orbit_Change_Burn = true;//Planned_Fuel_Left > 0.0;
+        }
+        Orbit_Change_Burn = true;
+    }
+}
+
+void AutoDeployParachuteWhenReady()
+{
+    if ( safe_to_deploy_parachute() && 0.5 + Kh * Altitude < MAX_PARACHUTE_SPEED && Altitude < 20000 )
+    {
+        parachute_status = DEPLOYED;
+    }
+}
+
 extern double climb_speed;
 bool climbing_done = false;
 bool descending_done = false;
@@ -73,6 +134,16 @@ void UpdateHeights()
                 done++;
             }
         }
+        Heights_Updated = true;
     }
-    Heights_Updated != 2;
+}
+
+void ClearHeights()
+{
+    climbing_done = false;
+    descending_done = false;
+    done = 0;
+    Heights_Updated = false;
+    Greatest_Height = 0.0;
+    Lowest_Height = DBL_MAX;
 }
