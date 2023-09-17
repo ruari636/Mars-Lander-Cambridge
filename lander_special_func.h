@@ -40,4 +40,10 @@ void ClearHeights();
 
 bool StartSuicideBurn();
 
+void LandSuicide();
+
+void LandProportional();
+
+void Deorbit();
+
 #endif

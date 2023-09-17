@@ -138,6 +138,13 @@ struct closeup_coords_t {
 // Enumerated data type for parachute status
 enum parachute_status_t { NOT_DEPLOYED = 0, DEPLOYED = 1, LOST = 2 };
 
+// Copilot Actions that are possible
+enum COPILOT_ACTION
+{
+  PROPORTIONALLANDING,
+  SUICIDELANDING
+};
+
 #ifdef DECLARE_GLOBAL_VARIABLES // actual declarations of all global variables for lander_graphics.cpp
 
 // GL windows and objects

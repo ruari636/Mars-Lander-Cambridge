@@ -10,6 +10,7 @@ double Planned_Fuel_Left;
 uint16_t done = 0; // variable containing ored together event flags
 double Time_Burn_Started;
 double Last_Throttle;
+bool SlowedDown = false;
 
 double calculateNewVApogee(double Apogee, double NewPerigee)
 {
@@ -77,7 +78,7 @@ void PreventLanderEscape()
 {
     if (ReachedEscapeVelocity())
     {
-        //throttle = 1.0;
+        throttle = 1.0;
     }
 }
 
@@ -168,7 +169,6 @@ extern vector3d FDragChute;
 bool SuicideBurnStarted = false;
 
 double avgLanderMassInBurn;
-double accEstimate;
 double ForceEstimate;
 double DragEstimate;
 double EstimatedTimeToBurn;
@@ -196,4 +196,47 @@ bool StartSuicideBurn()
         SuicideBurnStarted = ((ForceEstimate + DragEstimate) * altitude < KE) && altitude < 15000 | SuicideBurnStarted;
     }
     return SuicideBurnStarted;
+}
+
+void LandSuicide()
+{
+    Deorbit();
+    
+    if (!Orbit_Change_Burn)
+    {
+        if (SlowedDown)
+        {
+            PreventCrashLanding();
+        }
+        else if (StartSuicideBurn())
+        {
+            SlowedDown = true;
+        }
+        AutoDeployParachuteWhenReady();
+    }
+}
+
+void LandProportional()
+{
+    Deorbit();
+    AutoDeployParachuteWhenReady();
+    if (!Orbit_Change_Burn) PreventCrashLanding();
+}
+
+void Deorbit()
+{
+    PlanDeorbitIfInPermanentOrbit(); // Sets Orbit_Change_Burn to true if a deorbit
+                                    // is possible with remaining fuel
+    if (Orbit_Change_Burn)
+    {
+        if (Planned_Fuel_Left <= fuel)// && Planned_Fuel_Left > 0.0)
+        {
+            throttle = 1.0;
+        }
+        else
+        {
+            Orbit_Change_Burn = false;
+            throttle = 0.0;
+        }
+    }
 }

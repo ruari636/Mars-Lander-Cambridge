@@ -19,43 +19,22 @@ using namespace std;
 
 #define USEVERLET
 
-bool SlowedDown;
-extern bool SuicideBurnStarted;
+COPILOT_ACTION AUTO_NEXT = SUICIDELANDING;
 
 void autopilot (void)
 {
-  
   UpdateHeights();
   face_travel_direction();
-  PreventLanderEscape();
-  PlanDeorbitIfInPermanentOrbit(); // Sets Orbit_Change_Burn to true if a deorbit
-                                   // is possible with remaining fuel
-  if (Orbit_Change_Burn)
+  PreventLanderEscape(); // We don't want to fly away forever
+  switch (AUTO_NEXT)
   {
-    if (Planned_Fuel_Left <= fuel)// && Planned_Fuel_Left > 0.0)
-    {
-      throttle = 1.0;
-    }
-    else
-    {
-      Orbit_Change_Burn = false;
-      throttle = 0.0;
-    }
+    case (PROPORTIONALLANDING):
+      LandProportional();
+      break;
+    case (SUICIDELANDING):
+      LandSuicide();
+      break;
   }
-
-  if (SlowedDown)
-  {
-    PreventCrashLanding();
-  }
-  else if (StartSuicideBurn())
-  {
-    //if (altitude < 50.0) 
-    //{
-      SlowedDown = true; throttle = 0.0;
-    //}
-    //else { throttle = 1.0; }
-  }
-  AutoDeployParachuteWhenReady();
 }
 
 vector3d FGrav;
@@ -105,7 +84,6 @@ void initialize_simulation (void)
   // Lander pose initialization - selects one of 10 possible scenarios
 {
   ClearHeights();
-  SlowedDown = false;
   // The parameters to set are:
   // position - in Cartesian planetary coordinate system (m)
   // velocity - in Cartesian planetary coordinate system (m/s)
