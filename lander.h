@@ -211,7 +211,6 @@ extern double Greatest_Height;
 extern double Lowest_Height;
 extern bool Orbit_Change_Burn;
 extern double Planned_Fuel_Left;
-extern bool debugBurner;
 
 #endif
 

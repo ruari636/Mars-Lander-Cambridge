@@ -23,24 +23,27 @@ COPILOT_ACTION AUTO_NEXT;
 
 void autopilot (void)
 {
-  UpdateHeights();
-  PreventLanderEscape(); // We don't want to fly away forever
-  switch (AUTO_NEXT)
+  if (simulation_time > 5.0) // Gives it some time to stabilise before we measure and use data
   {
-    case (PROPORTIONALLANDING):
-      FaceDirection(velocity.norm());
-      LandProportional();
-      break;
-    case (SUICIDELANDING):
-      FaceDirection(velocity.norm());
-      LandSuicide();
-      break;
-    case (CIRCULARISEORBIT): // Does the most efficient orbit circularisation by raising perigee from apogee
-      FaceDirection(-velocity.norm());
-      CirculariseCurrentOrbit();
-      break;
-    case (DONOTHING):
-      break;
+    UpdateHeights();
+    PreventLanderEscape(); // We don't want to fly away forever
+    switch (AUTO_NEXT)
+    {
+      case (PROPORTIONALLANDING):
+        FaceDirection(velocity.norm());
+        LandProportional();
+        break;
+      case (SUICIDELANDING):
+        FaceDirection(velocity.norm());
+        LandSuicide();
+        break;
+      case (CIRCULARISEORBIT): // Does the most efficient orbit circularisation by raising perigee from apogee
+        FaceDirection(-velocity.norm());
+        CirculariseCurrentOrbit();
+        break;
+      case (DONOTHING):
+        break;
+    }
   }
 }
 
