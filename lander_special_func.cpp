@@ -258,7 +258,7 @@ void CirculariseCurrentOrbit()
 {
     if (Heights_Updated) // We have collected current data on Apogee and Perigee
     {
-        if (position.abs() > Greatest_Height * 0.99) // Only run the burner when we are very close to apogee
+        if (position.abs() > Greatest_Height * 0.999) // Only run the burner when we are very close to apogee
         {
             if ((done & CIRCULARISEORBITCALCDONE) == 0)
             {
@@ -270,5 +270,10 @@ void CirculariseCurrentOrbit()
             Orbit_Change_Burn = Planned_Fuel_Left > 0.0;
             OrbitChangeBurner();
         }
+    }
+    if (Planned_Fuel_Left <= 0.0)
+    {
+        ClearHeights();
+        done &= !CIRCULARISEORBITCALCDONE;
     }
 }
