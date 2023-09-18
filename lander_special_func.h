@@ -18,9 +18,9 @@ double calculateNewVApogee(double Apogee, double NewPerigee);
 
 double rocketEquationForFuel(double deltaV); // returns how much fuel to burn
 
-double calculateFuelBurnedForLowerPerigee(double Apogee, double Perigee, double NewPerigee);
+double calculateFuelBurnedForNewPerigee(double Apogee, double Perigee, double NewPerigee);
 
-void face_travel_direction();
+void FaceDirection(vector3d dir);
 
 bool ReachedEscapeVelocity();
 
@@ -45,5 +45,7 @@ void LandSuicide();
 void LandProportional();
 
 void Deorbit();
+
+void CirculariseCurrentOrbit();
 
 #endif

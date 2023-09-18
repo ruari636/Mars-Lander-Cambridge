@@ -24,15 +24,20 @@ COPILOT_ACTION AUTO_NEXT;
 void autopilot (void)
 {
   UpdateHeights();
-  face_travel_direction();
   PreventLanderEscape(); // We don't want to fly away forever
   switch (AUTO_NEXT)
   {
     case (PROPORTIONALLANDING):
+      FaceDirection(-velocity.norm());
       LandProportional();
       break;
     case (SUICIDELANDING):
+      FaceDirection(-velocity.norm());
       LandSuicide();
+      break;
+    case (CIRCULARISEORBIT): // Does the most efficient orbit circularisation by raising perigee from apogee
+      FaceDirection(velocity.norm());
+      CirculariseCurrentOrbit();
       break;
     case (DONOTHING):
       break;

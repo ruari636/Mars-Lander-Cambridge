@@ -141,9 +141,10 @@ enum parachute_status_t { NOT_DEPLOYED = 0, DEPLOYED = 1, LOST = 2 };
 // Copilot Actions that are possible
 enum COPILOT_ACTION
 {
-  DONOTHING,
   PROPORTIONALLANDING,
-  SUICIDELANDING
+  SUICIDELANDING,
+  CIRCULARISEORBIT,
+  DONOTHING
 };
 
 #ifdef DECLARE_GLOBAL_VARIABLES // actual declarations of all global variables for lander_graphics.cpp

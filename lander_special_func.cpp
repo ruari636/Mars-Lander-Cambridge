@@ -32,19 +32,19 @@ double rocketEquationForFuel(double deltaV)
     return deltaM; // We want to know how much fuel to burn
 }
 
-double calculateFuelBurnedForLowerPerigee(double Apogee, double Perigee, double NewPerigee)
+double calculateFuelBurnedForNewPerigee(double Apogee, double Perigee, double NewPerigee)
 {
     double v1 = calculateNewVApogee(Apogee, Perigee);
     double v2 = calculateNewVApogee(Apogee, NewPerigee);
     return rocketEquationForFuel(v2 - v1);
 }
 
-void face_travel_direction()
+void FaceDirection(vector3d dir)
 {
   vector3d up, left, out;
   double m[16];
 
-  up = -velocity.norm(); // this is the direction we want the lander's nose to point in
+  up = -dir.norm(); // this is the direction we want the lander's nose to point in
 
   // !!!!!!!!!!!!! HINT TO STUDENTS ATTEMPTING THE EXTENSION EXERCISES !!!!!!!!!!!!!!
   // For any-angle attitude control, we just need to set "up" to something different,
@@ -102,9 +102,9 @@ void PlanDeorbitIfInPermanentOrbit()
     {
         // Put us into a landing orbit
         double NewPerigee = 100000 + MARS_RADIUS; // 100km should do
-        if (position.abs() > Greatest_Height * 0.98)
+        if (position.abs() > Greatest_Height * 0.99)
         {
-            double fuelToBurn = calculateFuelBurnedForLowerPerigee(Greatest_Height, 
+            double fuelToBurn = calculateFuelBurnedForNewPerigee(Greatest_Height, 
                                                                 Lowest_Height, NewPerigee);
             Planned_Fuel_Left = fuel - (fuelToBurn / (FUEL_CAPACITY * FUEL_DENSITY));
             Orbit_Change_Burn = Planned_Fuel_Left > 0.0;
@@ -228,6 +228,33 @@ void Deorbit()
         {
             Orbit_Change_Burn = false;
             throttle = 0.0;
+        }
+    }
+}
+
+void CirculariseCurrentOrbit()
+{
+    if (Heights_Updated) // We have collected current data on Apogee and Perigee
+    {
+        if (position.abs() > Greatest_Height * 0.99)
+        {
+            double fuelToBurn = (-calculateFuelBurnedForNewPerigee(Greatest_Height, // set to negative as we are burning in direction of travel
+                                                                Lowest_Height, Greatest_Height)) > 0.0 ? -calculateFuelBurnedForNewPerigee(Greatest_Height, Lowest_Height, Greatest_Height):0.0;
+            Planned_Fuel_Left = fuel - (fuelToBurn / (FUEL_CAPACITY * FUEL_DENSITY));
+            Orbit_Change_Burn = Planned_Fuel_Left > 0.0;
+            if (Orbit_Change_Burn) // only burns when we are close to Apogee
+            {
+                if (Planned_Fuel_Left <= fuel)// && Planned_Fuel_Left > 0.0)
+                {
+                    throttle = 1.0;
+                }
+                else
+                {
+                    Orbit_Change_Burn = false;
+                    UpdateHeights();
+                    throttle = 0.0;
+                }
+            }
         }
     }
 }
