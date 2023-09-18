@@ -8,7 +8,7 @@ bool Orbit_Change_Burn = false;
 bool debugBurner = false;
 double Planned_Fuel_Left;
 uint16_t done = 0; // variable containing ored together event flags
-double Time_Burn_Started;
+double Time_Burn;
 double Last_Throttle;
 bool SlowedDown = false;
 
@@ -122,41 +122,32 @@ void AutoDeployParachuteWhenReady()
 }
 
 extern double climb_speed;
-bool climbing_done = false;
-bool descending_done = false;
+bool previous_descending;
+bool descending;
 
 void UpdateHeights()
 {
-    if (!Heights_Updated)
-    {
-        if (climb_speed >= 0.0)
-        {
-            climbing_done = true;
-            Greatest_Height = max(position.abs(), Greatest_Height);
-            if (descending_done)
-            {
-                descending_done = false;
-                done |= 0x0001;
-            }
-        }
-        if (climb_speed < 0.0)
-        {
-            descending_done = true;
-            Lowest_Height = min(position.abs(), Lowest_Height);
-            if (climbing_done)
-            {
-                climbing_done = false;
-                done |= 0x0002;
-            }
-        }
-        Heights_Updated = (done & 3) == 1;
-    }
+   previous_descending = descending;
+   descending = signbit(climb_speed);
+   if (!descending && previous_descending) // we have just gone past the lowest point in the orbit, measure it
+   {
+    Lowest_Height = position.abs();
+    done |= 0x0001;
+   }
+   else if (descending && !previous_descending) // we have just gone past the highest point in the orbit, measure it
+   {
+    Greatest_Height = position.abs();
+    done |= 0x0002;
+   }
+   if (done & (0x0001 + 0x0002) == (0x0001 + 0x0002))
+   {
+    Heights_Updated = true;
+    done &= !(0x0001 + 0x0002);
+   }
 }
 
 void ClearHeights()
 {
-    climbing_done = false;
-    descending_done = false;
     done = 0;
     Heights_Updated = false;
     Greatest_Height = 0.0;

@@ -204,7 +204,6 @@ extern parachute_status_t parachute_status;
 extern int stabilized_attitude_angle;
 
 extern double altitude;
-extern bool Heights_Updated;
 extern double Greatest_Height;
 extern double Lowest_Height;
 extern bool Orbit_Change_Burn;
