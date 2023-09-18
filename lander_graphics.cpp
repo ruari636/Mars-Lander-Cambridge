@@ -824,11 +824,16 @@ void display_help_arrows (void)
   glEnable(GL_LIGHTING);
 }
 
+#define TEXTSTARTX 20
+#define TEXTSTARTY 20
+#define TEXTGAP 15
+#define NEWLINE 20
 void display_help_text (void)
   // Displays help information in orbital view window
 {
   ostringstream s;
   unsigned short i, j;
+  int curYpos = TEXTSTARTY;
 
   glColor3f(1.0, 1.0, 1.0);
 
@@ -842,27 +847,38 @@ void display_help_text (void)
   glDisable(GL_LIGHTING);
   glDisable(GL_DEPTH_TEST);
 
-  glut_print(20, view_height-20, "Left arrow - decrease simulation speed");
-  glut_print(20, view_height-35, "Right arrow - increase simulation speed");
-  glut_print(20, view_height-50, "Space - single step through simulation");
+  glut_print(TEXTSTARTX, view_height-curYpos, "Left arrow - decrease simulation speed"); curYpos += TEXTGAP;
+  glut_print(TEXTSTARTX, view_height-curYpos, "Right arrow - increase simulation speed"); curYpos += TEXTGAP;
+  glut_print(TEXTSTARTX, view_height-curYpos, "Space - single step through simulation"); curYpos += NEWLINE;
 
-  glut_print(20, view_height-70, "Up arrow - more thrust");
-  glut_print(20, view_height-85, "Down arrow - less thrust");
+  if (!autopilot_enabled)
+  {
+    glut_print(TEXTSTARTX, view_height-curYpos, "Up arrow - more thrust"); curYpos += TEXTGAP;
+    glut_print(TEXTSTARTX, view_height-curYpos, "Down arrow - less thrust"); curYpos += NEWLINE;
+  }
 
-  glut_print(20, view_height-105, "Keys 0-9 - restart simulation in scenario n");
+  glut_print(TEXTSTARTX, view_height-curYpos, "Keys 0-9 - restart simulation in scenario n"); curYpos += NEWLINE;
 
-  glut_print(20, view_height-125, "Left mouse - rotate 3D views");
-  glut_print(20, view_height-140, "Middle/shift mouse or up wheel - zoom in 3D views");
-  glut_print(20, view_height-155, "Right mouse or down wheel - zoom out 3D views");
+  glut_print(TEXTSTARTX, view_height-curYpos, "Left mouse - rotate 3D views"); curYpos += TEXTGAP;
+  glut_print(TEXTSTARTX, view_height-curYpos, "Middle/shift mouse or up wheel - zoom in 3D views"); curYpos += TEXTGAP;
+  glut_print(TEXTSTARTX, view_height-curYpos, "Right mouse or down wheel - zoom out 3D views"); curYpos += NEWLINE;
 
-  glut_print(20, view_height-175, "s - toggle attitude stabilizer");
-  glut_print(20, view_height-190, "p - deploy parachute");
-  glut_print(20, view_height-205, "a - toggle autopilot");
+  if (autopilot_enabled)
+  {
+    glut_print(TEXTSTARTX, view_height-curYpos, "s - begin suicide landing"); curYpos += TEXTGAP;
+    glut_print(TEXTSTARTX, view_height-curYpos, "p - begin proportional landing"); curYpos += TEXTGAP;
+  }
+  else
+  {
+    glut_print(TEXTSTARTX, view_height-curYpos, "s - toggle attitude stabilizer"); curYpos += TEXTGAP;
+    glut_print(TEXTSTARTX, view_height-curYpos, "p - deploy parachute"); curYpos += TEXTGAP;
+  }
+  glut_print(TEXTSTARTX, view_height-curYpos, "a - toggle autopilot"); curYpos += NEWLINE;
 
-  glut_print(20, view_height-225, "l - toggle lighting model");
-  glut_print(20, view_height-240, "t - toggle terrain texture");
-  glut_print(20, view_height-255, "h - toggle help");
-  glut_print(20, view_height-270, "Esc/q - quit");
+  glut_print(TEXTSTARTX, view_height-curYpos, "l - toggle lighting model"); curYpos += TEXTGAP;
+  glut_print(TEXTSTARTX, view_height-curYpos, "t - toggle terrain texture"); curYpos += TEXTGAP;
+  glut_print(TEXTSTARTX, view_height-curYpos, "h - toggle help"); curYpos += TEXTGAP;
+  glut_print(TEXTSTARTX, view_height-curYpos, "Esc/q - quit");
 
   j = 0;
   for (i=0; i<10; i++) {
@@ -2042,12 +2058,14 @@ void glut_key (unsigned char k, int x, int y)
   case 'p': case 'P':
     // p or P - deploy parachute
     if (!autopilot_enabled && !landed && (parachute_status == NOT_DEPLOYED)) parachute_status = DEPLOYED;
+    if (autopilot_enabled && !landed) AUTO_NEXT = PROPORTIONALLANDING;
     if (paused) refresh_all_subwindows();
     break;
 
   case 's': case 'S':
     // s or S - attitude stabilizer
     if (!autopilot_enabled && !landed) stabilized_attitude = !stabilized_attitude;
+    if (autopilot_enabled && !landed) AUTO_NEXT = SUICIDELANDING;
     if (paused) refresh_all_subwindows();
     break;
 

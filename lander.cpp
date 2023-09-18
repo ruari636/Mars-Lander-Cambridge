@@ -19,7 +19,7 @@ using namespace std;
 
 #define USEVERLET
 
-COPILOT_ACTION AUTO_NEXT = SUICIDELANDING;
+COPILOT_ACTION AUTO_NEXT;
 
 void autopilot (void)
 {
@@ -33,6 +33,8 @@ void autopilot (void)
       break;
     case (SUICIDELANDING):
       LandSuicide();
+      break;
+    case (DONOTHING):
       break;
   }
 }
@@ -84,6 +86,7 @@ void initialize_simulation (void)
   // Lander pose initialization - selects one of 10 possible scenarios
 {
   ClearHeights();
+  AUTO_NEXT = DONOTHING;
   // The parameters to set are:
   // position - in Cartesian planetary coordinate system (m)
   // velocity - in Cartesian planetary coordinate system (m/s)
