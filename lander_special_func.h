@@ -14,6 +14,11 @@
 #define NSperLITRE (MAX_THRUST / FUEL_RATE_AT_MAX_THRUST)
 #define LAGBURNCORRECTION 0.5
 
+#define LOWESTHEIGHTMEASUREDMASK 0x0001
+#define GREATESTHEIGHTMEASUREDMASK 0x0002
+
+void OrbitChangeBurner();
+
 double calculateNewVApogee(double Apogee, double NewPerigee);
 
 double rocketEquationForFuel(double deltaV); // returns how much fuel to burn
@@ -28,7 +33,7 @@ void PreventLanderEscape();
 
 void ClampVelocity(double clamp);
 
-void PreventCrashLanding();
+void ThrustProportionalToUnsafeVel();
 
 void PlanDeorbitIfInPermanentOrbit();
 
@@ -38,7 +43,7 @@ void UpdateHeights(); // returns false when we have gathered all info about curr
 
 void ClearHeights();
 
-bool StartSuicideBurn();
+bool UpdateSuicideBurn();
 
 void LandSuicide();
 

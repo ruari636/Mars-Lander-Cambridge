@@ -10,7 +10,24 @@ double Planned_Fuel_Left;
 uint16_t done = 0; // variable containing ored together event flags
 double Time_Burn;
 double Last_Throttle;
-bool SlowedDown = false;
+bool SuicideBurnStarted = false;
+
+void OrbitChangeBurner()
+{
+    if (Orbit_Change_Burn)
+    {
+        if (Planned_Fuel_Left < fuel)
+        {
+            throttle = 1.0;
+        }
+        else
+        {
+            Orbit_Change_Burn = false;
+            ClearHeights(); // New orbit, new heights
+            throttle = 0.0;
+        }
+    }
+}
 
 double calculateNewVApogee(double Apogee, double NewPerigee)
 {
@@ -87,7 +104,7 @@ void ClampVelocity(double clamp) // assuming down is positive
     //if (velocity * position <= 0.0) throttle = (velocity.abs() > clamp) ? 1.0:0.0;
 }
 
-void PreventCrashLanding()
+void ThrustProportionalToUnsafeVel()
 {
     double vel_minus_desired_vel = 0.5 + Kh * altitude + velocity * position.norm();
     bool TooFast = vel_minus_desired_vel < 0.0;
@@ -131,18 +148,18 @@ void UpdateHeights()
    descending = signbit(climb_speed);
    if (!descending && previous_descending) // we have just gone past the lowest point in the orbit, measure it
    {
-    Lowest_Height = position.abs();
-    done |= 0x0001;
+        if (Lowest_Height < position.abs() * 1.01) done |= LOWESTHEIGHTMEASUREDMASK;// We have gone past the lowest point twice and it is the same so we are in a permanent orbit
+        Lowest_Height = position.abs();
    }
    else if (descending && !previous_descending) // we have just gone past the highest point in the orbit, measure it
    {
-    Greatest_Height = position.abs();
-    done |= 0x0002;
+        Greatest_Height = position.abs();
+        done |= GREATESTHEIGHTMEASUREDMASK;
    }
-   if (done & (0x0001 + 0x0002) == (0x0001 + 0x0002))
+   if (done & (LOWESTHEIGHTMEASUREDMASK + GREATESTHEIGHTMEASUREDMASK) == (LOWESTHEIGHTMEASUREDMASK + GREATESTHEIGHTMEASUREDMASK))
    {
-    Heights_Updated = true;
-    done &= !(0x0001 + 0x0002);
+        Heights_Updated = true;
+        done &= !(LOWESTHEIGHTMEASUREDMASK + GREATESTHEIGHTMEASUREDMASK); // reset the flags that correspond to UpdateHeights
    }
 }
 
@@ -157,7 +174,6 @@ void ClearHeights()
 extern vector3d FGrav;
 extern vector3d FDragLander;
 extern vector3d FDragChute;
-bool SuicideBurnStarted = false;
 
 double avgLanderMassInBurn;
 double ForceEstimate;
@@ -177,14 +193,14 @@ void IterativeSuicideBurnEstimator()
     }
 }
 
-bool StartSuicideBurn()
+bool UpdateSuicideBurn()
 {
     if (velocity * position < 0.0)
     {
         avgLanderMassInBurn = LANDERMASS;
         double KE = 0.5 * LANDERMASS * velocity.abs2();
         IterativeSuicideBurnEstimator();
-        SuicideBurnStarted = ((ForceEstimate + DragEstimate) * altitude < KE) && altitude < 15000 | SuicideBurnStarted;
+        SuicideBurnStarted = (((ForceEstimate + DragEstimate) * altitude < KE) && altitude < 5000) | SuicideBurnStarted; // At 5km the max vel we can stop is 
     }
     return SuicideBurnStarted;
 }
@@ -195,14 +211,11 @@ void LandSuicide()
     
     if (!Orbit_Change_Burn)
     {
-        if (SlowedDown)
+        if (SuicideBurnStarted)
         {
-            PreventCrashLanding();
+            ThrustProportionalToUnsafeVel();
         }
-        else if (StartSuicideBurn())
-        {
-            SlowedDown = true;
-        }
+        else UpdateSuicideBurn();
         AutoDeployParachuteWhenReady();
     }
 }
@@ -211,50 +224,27 @@ void LandProportional()
 {
     Deorbit();
     AutoDeployParachuteWhenReady();
-    if (!Orbit_Change_Burn) PreventCrashLanding();
+    if (!Orbit_Change_Burn) ThrustProportionalToUnsafeVel();
 }
 
 void Deorbit()
 {
     PlanDeorbitIfInPermanentOrbit(); // Sets Orbit_Change_Burn to true if a deorbit
                                     // is possible with remaining fuel
-    if (Orbit_Change_Burn)
-    {
-        if (Planned_Fuel_Left <= fuel)// && Planned_Fuel_Left > 0.0)
-        {
-            throttle = 1.0;
-        }
-        else
-        {
-            Orbit_Change_Burn = false;
-            throttle = 0.0;
-        }
-    }
+    OrbitChangeBurner();
 }
 
 void CirculariseCurrentOrbit()
 {
     if (Heights_Updated) // We have collected current data on Apogee and Perigee
     {
-        if (position.abs() > Greatest_Height * 0.99)
+        if (position.abs() > Greatest_Height * 0.99) // Only run the burner when we are very close to apogee
         {
             double fuelToBurn = (-calculateFuelBurnedForNewPerigee(Greatest_Height, // set to negative as we are burning in direction of travel
                                                                 Lowest_Height, Greatest_Height)) > 0.0 ? -calculateFuelBurnedForNewPerigee(Greatest_Height, Lowest_Height, Greatest_Height):0.0;
             Planned_Fuel_Left = fuel - (fuelToBurn / (FUEL_CAPACITY * FUEL_DENSITY));
             Orbit_Change_Burn = Planned_Fuel_Left > 0.0;
-            if (Orbit_Change_Burn) // only burns when we are close to Apogee
-            {
-                if (Planned_Fuel_Left <= fuel)// && Planned_Fuel_Left > 0.0)
-                {
-                    throttle = 1.0;
-                }
-                else
-                {
-                    Orbit_Change_Burn = false;
-                    UpdateHeights();
-                    throttle = 0.0;
-                }
-            }
+            OrbitChangeBurner();
         }
     }
 }

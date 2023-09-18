@@ -867,6 +867,7 @@ void display_help_text (void)
   {
     glut_print(TEXTSTARTX, view_height-curYpos, "s - begin suicide landing"); curYpos += TEXTGAP;
     glut_print(TEXTSTARTX, view_height-curYpos, "p - begin proportional landing"); curYpos += TEXTGAP;
+    glut_print(TEXTSTARTX, view_height-curYpos, "c - efficiently circularise current orbit from apogee"); curYpos += TEXTGAP;
   }
   else
   {

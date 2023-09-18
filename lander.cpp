@@ -28,15 +28,15 @@ void autopilot (void)
   switch (AUTO_NEXT)
   {
     case (PROPORTIONALLANDING):
-      FaceDirection(-velocity.norm());
+      FaceDirection(velocity.norm());
       LandProportional();
       break;
     case (SUICIDELANDING):
-      FaceDirection(-velocity.norm());
+      FaceDirection(velocity.norm());
       LandSuicide();
       break;
     case (CIRCULARISEORBIT): // Does the most efficient orbit circularisation by raising perigee from apogee
-      FaceDirection(velocity.norm());
+      FaceDirection(-velocity.norm());
       CirculariseCurrentOrbit();
       break;
     case (DONOTHING):
