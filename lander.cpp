@@ -90,7 +90,7 @@ void numerical_dynamics (void)
 void initialize_simulation (void)
   // Lander pose initialization - selects one of 10 possible scenarios
 {
-  ClearHeights();
+  initialize_special_func();
   AUTO_NEXT = DONOTHING;
   // The parameters to set are:
   // position - in Cartesian planetary coordinate system (m)

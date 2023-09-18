@@ -13,9 +13,12 @@
 #define Kh 0.05
 #define NSperLITRE (MAX_THRUST / FUEL_RATE_AT_MAX_THRUST)
 #define LAGBURNCORRECTION 0.5
+#define MAXSUICIDEBURNCHECKHEIGHT 7500
 
 #define LOWESTHEIGHTMEASUREDMASK 0x0001
 #define GREATESTHEIGHTMEASUREDMASK 0x0002
+
+void initialize_special_func();
 
 void OrbitChangeBurner();
 
