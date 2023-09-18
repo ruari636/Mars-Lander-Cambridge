@@ -2069,6 +2069,10 @@ void glut_key (unsigned char k, int x, int y)
     if (autopilot_enabled && !landed) AUTO_NEXT = SUICIDELANDING;
     if (paused) refresh_all_subwindows();
     break;
+  
+  case 'o': case 'O':
+    if (autopilot_enabled && !landed) AUTO_NEXT = CIRCULARISEORBIT;
+    break;
 
   case 32:
     // space bar

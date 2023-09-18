@@ -23,6 +23,7 @@ double ForceEstimate;
 void initialize_special_func()
 {
     ClearHeights();
+    done = 0;
     SuicideBurnStarted = false;
     Orbit_Change_Burn = false;
     Heights_Updated = false;
@@ -185,7 +186,7 @@ void UpdateHeights()
 
 void ClearHeights()
 {
-    done = 0;
+    done &= !(LOWESTHEIGHTMEASUREDMASK + GREATESTHEIGHTMEASUREDMASK);
     Heights_Updated = false;
     Greatest_Height = 0.0;
     Lowest_Height = DBL_MAX;
@@ -259,9 +260,13 @@ void CirculariseCurrentOrbit()
     {
         if (position.abs() > Greatest_Height * 0.99) // Only run the burner when we are very close to apogee
         {
-            double fuelToBurn = (-calculateFuelBurnedForNewPerigee(Greatest_Height, // set to negative as we are burning in direction of travel
+            if ((done & CIRCULARISEORBITCALCDONE) == 0)
+            {
+                double fuelToBurn = (-calculateFuelBurnedForNewPerigee(Greatest_Height, // set to negative as we are burning in direction of travel
                                                                 Lowest_Height, Greatest_Height)) > 0.0 ? -calculateFuelBurnedForNewPerigee(Greatest_Height, Lowest_Height, Greatest_Height):0.0;
-            Planned_Fuel_Left = fuel - (fuelToBurn / (FUEL_CAPACITY * FUEL_DENSITY));
+                Planned_Fuel_Left = fuel - (fuelToBurn / (FUEL_CAPACITY * FUEL_DENSITY));
+                done |= CIRCULARISEORBITCALCDONE;
+            }
             Orbit_Change_Burn = Planned_Fuel_Left > 0.0;
             OrbitChangeBurner();
         }
