@@ -17,7 +17,9 @@
 
 #define LOWESTHEIGHTMEASUREDMASK 0x0001
 #define GREATESTHEIGHTMEASUREDMASK 0x0002
-#define CIRCULARISEORBITCALCDONE 0x0004
+#define ORBITCHANGECALCDONE 0x0004
+#define NEXTAPOGEEMET 0x0008
+#define NEXTPERIGEEMET 0x0010
 
 void initialize_special_func();
 
@@ -25,9 +27,13 @@ void OrbitChangeBurner();
 
 double calculateNewVApogee(double Apogee, double NewPerigee);
 
+double calculateNewVPerigee(double Perigee, double NewApogee);
+
 double rocketEquationForFuel(double deltaV); // returns how much fuel to burn
 
 double calculateFuelBurnedForNewPerigee(double Apogee, double Perigee, double NewPerigee);
+
+double calculateFuelBurnedForNewApogee(double Apogee, double Perigee, double NewApogee);
 
 void FaceDirection(vector3d dir);
 
@@ -58,5 +64,7 @@ void LandProportional();
 void Deorbit();
 
 void CirculariseCurrentOrbit();
+
+void MoveToOrbitInPlane(double NextApogee, double NextPerigee);
 
 #endif

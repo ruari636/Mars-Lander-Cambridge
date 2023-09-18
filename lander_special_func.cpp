@@ -56,7 +56,13 @@ void OrbitChangeBurner()
 double calculateNewVApogee(double Apogee, double NewPerigee)
 {
     return sqrt(GRAVITY * MARS_MASS * (2 * NewPerigee) / 
-                        (Apogee * (NewPerigee + Apogee)));
+                        (Apogee * (2 * NewPerigee + Apogee)));
+}
+
+double calculateNewVPerigee(double Perigee, double NewApogee)
+{
+    return sqrt(GRAVITY * MARS_MASS * (2 * NewApogee) / 
+                        (Perigee * (2 * NewApogee + Perigee)));
 }
 
 double rocketEquationForFuel(double deltaV)
@@ -77,6 +83,13 @@ double calculateFuelBurnedForNewPerigee(double Apogee, double Perigee, double Ne
 {
     double v1 = calculateNewVApogee(Apogee, Perigee);
     double v2 = calculateNewVApogee(Apogee, NewPerigee);
+    return rocketEquationForFuel(v2 - v1);
+}
+
+double calculateFuelBurnedForNewApogee(double Apogee, double Perigee, double NewApogee)
+{
+    double v1 = calculateNewVPerigee(Perigee, Apogee);
+    double v2 = calculateNewVPerigee(Perigee, NewApogee);
     return rocketEquationForFuel(v2 - v1);
 }
 
@@ -271,14 +284,14 @@ void CirculariseCurrentOrbit()
 {
     if (Heights_Updated) // We have collected current data on Apogee and Perigee
     {
-        if (position.abs() > Greatest_Height * 0.999) // Only run the burner when we are very close to apogee
+        if (position.abs() >= Greatest_Height * 0.999) // Only run the burner when we are very close to apogee
         {
-            if ((done & CIRCULARISEORBITCALCDONE) == 0)
+            if ((done & ORBITCHANGECALCDONE) == 0)
             {
                 double fuelToBurn = (-calculateFuelBurnedForNewPerigee(Greatest_Height, // set to negative as we are burning in direction of travel
                                                                 Lowest_Height, Greatest_Height)) > 0.0 ? -calculateFuelBurnedForNewPerigee(Greatest_Height, Lowest_Height, Greatest_Height):0.0;
                 Planned_Fuel_Left = fuel - (fuelToBurn / (FUEL_CAPACITY * FUEL_DENSITY));
-                done |= CIRCULARISEORBITCALCDONE;
+                done |= ORBITCHANGECALCDONE;
                 iterations++;
             }
             Orbit_Change_Burn = Planned_Fuel_Left > 0.0;
@@ -288,6 +301,50 @@ void CirculariseCurrentOrbit()
     if (Planned_Fuel_Left <= 0.0 && iterations < 4) // this ensures the orbit gets smoothed 4 times
     {
         ClearHeights();
-        done &= !CIRCULARISEORBITCALCDONE;
+        done &= !ORBITCHANGECALCDONE;
+    }
+}
+
+int dir;
+void MoveToOrbitInPlane(double NextApogee, double NextPerigee)
+{
+    if (Heights_Updated)
+    {
+        if (position.abs() <= Lowest_Height * 1.001 && (done & NEXTAPOGEEMET) == 0)
+        {
+            if ((done & ORBITCHANGECALCDONE) == 0)
+            {
+                double fuelToBurn = calculateFuelBurnedForNewApogee(Greatest_Height, Lowest_Height, NextApogee);
+                Planned_Fuel_Left = fuel - (abs(fuelToBurn) / (FUEL_CAPACITY * FUEL_DENSITY));
+                done |= ORBITCHANGECALCDONE;
+                dir = signbit(fuelToBurn) * 2 - 1;
+            }
+            Orbit_Change_Burn = Planned_Fuel_Left > 0.0;
+            FaceDirection(velocity.norm() * dir);
+            OrbitChangeBurner();
+            if (fuel <= Planned_Fuel_Left)
+            {
+                done |= NEXTAPOGEEMET;
+                done &= !ORBITCHANGECALCDONE;
+            }
+        }
+        else if (position.abs() >= Greatest_Height * 0.99 && (done & NEXTPERIGEEMET) == 0)
+        {
+            if ((done & ORBITCHANGECALCDONE) == 0)
+            {
+                double fuelToBurn = calculateFuelBurnedForNewPerigee(Greatest_Height, Lowest_Height, NextPerigee);
+                Planned_Fuel_Left = fuel - (abs(fuelToBurn) / (FUEL_CAPACITY * FUEL_DENSITY));
+                done |= ORBITCHANGECALCDONE;
+                dir = signbit(fuelToBurn) * 2 - 1;
+            }
+            Orbit_Change_Burn = Planned_Fuel_Left > 0.0;
+            FaceDirection(velocity.norm() * dir);
+            OrbitChangeBurner();
+            if (fuel <= Planned_Fuel_Left)
+            {
+                done |= NEXTPERIGEEMET;
+                done &= !ORBITCHANGECALCDONE;
+            }
+        }
     }
 }
