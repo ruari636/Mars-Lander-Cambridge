@@ -532,7 +532,7 @@ void glut_print (float x, float y, string s)
   unsigned short i;
 
   glRasterPos2f(x, y);
-  for (i = 0; i < s.length(); i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_10, s[i]);
+  for (i = 0; i < s.length(); i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, s[i]);
 }
 
 double atmospheric_density (vector3d pos)
@@ -875,19 +875,23 @@ void display_help_text (void)
     glut_print(TEXTSTARTX, view_height-curYpos, "s - toggle attitude stabilizer"+ to_string(RotationAngle)); curYpos += TEXTGAP;
     glut_print(TEXTSTARTX, view_height-curYpos, "p - deploy parachute"); curYpos += TEXTGAP;
   }
+  glut_print(TEXTSTARTX, view_height-curYpos, "r - refuel"); curYpos += TEXTGAP;
   glut_print(TEXTSTARTX, view_height-curYpos, "a - toggle autopilot"); curYpos += NEWLINE;
 
   glut_print(TEXTSTARTX, view_height-curYpos, "l - toggle lighting model"); curYpos += TEXTGAP;
   glut_print(TEXTSTARTX, view_height-curYpos, "t - toggle terrain texture"); curYpos += TEXTGAP;
   glut_print(TEXTSTARTX, view_height-curYpos, "h - toggle help"); curYpos += TEXTGAP;
-  glut_print(TEXTSTARTX, view_height-curYpos, "Esc/q - quit");
+  glut_print(TEXTSTARTX, view_height-curYpos, "Esc/q - quit"); curYpos += NEWLINE;
 
   j = 0;
-  for (i=0; i<10; i++) {
+  for (i=0; i<size(scenario_description); i++) {
     s.str("");
     s << "Scenario " << i << ": " << scenario_description[i];
-    if (view_height > 448) glut_print(20, (448-view_height) + view_height-300-15*j, s.str());
-    else glut_print(20, view_height-300-15*j, s.str());
+    if (view_height > curYpos + TEXTGAP * size(scenario_description) + 1.5 * NEWLINE) 
+    {
+      glut_print(20, view_height - curYpos - 1.5 * NEWLINE - TEXTGAP * j, s.str());
+    }
+    else glut_print(20, view_height - curYpos - TEXTGAP*j, s.str());
     j++;
   }
 
@@ -2074,6 +2078,9 @@ void glut_key (unsigned char k, int x, int y)
   case 'o': case 'O':
     if (autopilot_enabled && !landed) AUTO_NEXT = CIRCULARISEORBIT;
     break;
+
+  case 'r': case 'R':
+    fuel = 1.0;
 
   case 'k': case 'K':
     if (!autopilot_enabled && !landed)

@@ -136,7 +136,7 @@ void PreventLanderEscape()
 
 void ClampVelocity(double clamp) // assuming down is positive
 {
-    //if (velocity * position <= 0.0) throttle = (velocity.abs() > clamp) ? 1.0:0.0;
+    if (velocity * position <= 0.0) throttle = (velocity.abs() > clamp) ? 1.0:0.0;
 }
 
 #define HEIGHTTOLANDINGSPEED 216.0

@@ -2,23 +2,53 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "C/C++ Runner: Debug Session",
+      "name": "Debug Lander",
       "type": "cppdbg",
       "request": "launch",
-      "args": [],
+      "program": "${workspaceFolder}/lander",  // Path to your ./lander executable
+      "args": [],  // Command-line arguments, if any
       "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [],
       "externalConsole": false,
-      "cwd": "/home/ruari/Desktop/lander",
-      "program": "/home/ruari/Desktop/lander/build/Debug/outDebug",
       "MIMode": "gdb",
-      "miDebuggerPath": "gdb",
       "setupCommands": [
         {
           "description": "Enable pretty-printing for gdb",
           "text": "-enable-pretty-printing",
           "ignoreFailures": true
         }
-      ]
+      ],
+      "preLaunchTask": "make",  // Build task to run before launching
+      "miDebuggerPath": "/usr/bin/gdb",  // Path to gdb on your system
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        }
+      ],
+      "stopAtEntry": false,
+      "program": "${workspaceFolder}/lander", // Path to your ./lander executable
+      "args": [], // Command-line arguments, if any
+      "cwd": "${workspaceFolder}",
+      "externalConsole": false,
+      "internalConsoleOptions": "openOnSessionStart",
+      "linux": {
+        "MIMode": "gdb"
+      },
+      "windows": {
+        "MIMode": "gdb"
+      },
+      "pipeTransport": {
+        "pipeCwd": "${workspaceFolder}",
+        "pipeProgram": "bash",
+        "pipeArgs": ["-c"]
+      },
+      "sourceFileMap": {
+        "/build/glibc-bfm8X4/glibc-2.31/csu": "${workspaceFolder}/c",
+        "/build/glibc-bfm8X4/glibc-2.31/machine": "${workspaceFolder}/machine"
+      }
     }
   ]
 }

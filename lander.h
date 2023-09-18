@@ -151,6 +151,9 @@ enum COPILOT_ACTION
   PROPORTIONALLANDING,
   SUICIDELANDING,
   CIRCULARISEORBIT,
+  CUSTOMORBIT,
+  RECORDAPOGEE,
+  RECORDPERIGEE,
   DONOTHING
 };
 
@@ -174,7 +177,7 @@ int last_click_y = -1;
 short simulation_speed = 5;
 double delta_t, simulation_time;
 unsigned short scenario = 0;
-string scenario_description[10];
+string scenario_description[8];
 bool static_lighting = false;
 closeup_coords_t closeup_coords;
 float randtab[N_RAND];
@@ -183,6 +186,7 @@ unsigned long throttle_buffer_length, throttle_buffer_pointer;
 double *throttle_buffer = NULL;
 unsigned long long time_program_started;
 extern COPILOT_ACTION AUTO_NEXT;
+extern COPILOT_ACTION TEMPCOMMAND;
 extern double RotationAngle;
 
 // Lander state - the visualization routines use velocity_from_positions, so not sensitive to 

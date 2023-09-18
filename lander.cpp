@@ -20,6 +20,7 @@ using namespace std;
 #define USEVERLET
 
 COPILOT_ACTION AUTO_NEXT;
+COPILOT_ACTION TEMPCOMMAND;
 
 void autopilot (void)
 {
@@ -42,6 +43,8 @@ void autopilot (void)
         CirculariseCurrentOrbit();
         break;
       case (DONOTHING):
+        break;
+      default:
         break;
     }
   }
@@ -114,8 +117,6 @@ void initialize_simulation (void)
   scenario_description[5] = "descent from 200km";
   scenario_description[6] = "geostationary orbit";
   scenario_description[7] = "";
-  scenario_description[8] = "";
-  scenario_description[9] = "";
   
   switch (scenario) {
 
