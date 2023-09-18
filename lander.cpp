@@ -52,6 +52,7 @@ vector3d FDragLander;
 vector3d FDragChute;
 vector3d Thrust;
 vector3d acceleration;
+double RotationAngle;
 
 void numerical_dynamics (void)
   // This is the function that performs the numerical integration to update the
@@ -63,6 +64,7 @@ void numerical_dynamics (void)
   FDragChute = pow(LANDER_SIZE * 2, 2) * 5 * DRAGCONSTANT(DRAG_COEF_CHUTE) * VELCONSTANT;
   Thrust = thrust_wrt_world();
   acceleration = (FGrav + FDragLander + Thrust) / (double)LANDERMASS;
+  FaceDirection(VecAtAngleToPosInPlane(RotationAngle));
   
 #if defined(USEVERLET)
   if (simulation_time == 0)
@@ -95,6 +97,7 @@ void initialize_simulation (void)
 {
   initialize_special_func();
   AUTO_NEXT = DONOTHING;
+  RotationAngle = 0.0;
   // The parameters to set are:
   // position - in Cartesian planetary coordinate system (m)
   // velocity - in Cartesian planetary coordinate system (m/s)

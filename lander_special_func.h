@@ -31,6 +31,8 @@ double calculateFuelBurnedForNewPerigee(double Apogee, double Perigee, double Ne
 
 void FaceDirection(vector3d dir);
 
+vector3d VecAtAngleToPosInPlane(double angle);
+
 bool ReachedEscapeVelocity();
 
 void PreventLanderEscape();

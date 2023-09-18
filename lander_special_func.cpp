@@ -19,10 +19,12 @@ bool descending;
 double avgLanderMassInBurn;
 double DragEstimate;
 double ForceEstimate;
+int iterations = 0;
 
 void initialize_special_func()
 {
     ClearHeights();
+    iterations = 0;
     done = 0;
     SuicideBurnStarted = false;
     Orbit_Change_Burn = false;
@@ -106,6 +108,17 @@ void FaceDirection(vector3d dir)
   m[12] = 0.0; m[13] = 0.0; m[14] = 0.0; m[15] = 1.0;
   // Decomponse into xyz Euler angles
   orientation = matrix_to_xyz_euler(m);
+}
+
+vector3d VecAtAngleToPosInPlane(double angle)
+{
+    vector3d PlaneNormal = position.crossProduct(velocity).norm();
+    vector3d PosNorm = position.norm();
+    if (velocity.abs2() == 0 || PlaneNormal.abs2() == 0) return PosNorm;
+    vector3d PosPerp = PosNorm.crossProduct(PlaneNormal);
+    double xFac = sin(angle);
+    double yFac = -cos(angle);
+    return PosPerp * xFac + PosNorm * yFac;
 }
 
 bool ReachedEscapeVelocity()
@@ -266,12 +279,13 @@ void CirculariseCurrentOrbit()
                                                                 Lowest_Height, Greatest_Height)) > 0.0 ? -calculateFuelBurnedForNewPerigee(Greatest_Height, Lowest_Height, Greatest_Height):0.0;
                 Planned_Fuel_Left = fuel - (fuelToBurn / (FUEL_CAPACITY * FUEL_DENSITY));
                 done |= CIRCULARISEORBITCALCDONE;
+                iterations++;
             }
             Orbit_Change_Burn = Planned_Fuel_Left > 0.0;
             OrbitChangeBurner();
         }
     }
-    if (Planned_Fuel_Left <= 0.0)
+    if (Planned_Fuel_Left <= 0.0 && iterations < 4) // this ensures the orbit gets smoothed 4 times
     {
         ClearHeights();
         done &= !CIRCULARISEORBITCALCDONE;

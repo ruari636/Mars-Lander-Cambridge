@@ -854,6 +854,7 @@ void display_help_text (void)
   if (!autopilot_enabled)
   {
     glut_print(TEXTSTARTX, view_height-curYpos, "Up arrow - more thrust"); curYpos += TEXTGAP;
+    glut_print(TEXTSTARTX, view_height-curYpos, "K and M - Rotate craft in plane of orbit"); curYpos += TEXTGAP;
     glut_print(TEXTSTARTX, view_height-curYpos, "Down arrow - less thrust"); curYpos += NEWLINE;
   }
 
@@ -865,13 +866,13 @@ void display_help_text (void)
 
   if (autopilot_enabled)
   {
-    glut_print(TEXTSTARTX, view_height-curYpos, "s - begin suicide landing"); curYpos += TEXTGAP;
+    glut_print(TEXTSTARTX, view_height-curYpos, "s - begin suicide landing" + to_string(RotationAngle)); curYpos += TEXTGAP;
     glut_print(TEXTSTARTX, view_height-curYpos, "p - begin proportional landing"); curYpos += TEXTGAP;
     glut_print(TEXTSTARTX, view_height-curYpos, "c - efficiently circularise current orbit from apogee"); curYpos += TEXTGAP;
   }
   else
   {
-    glut_print(TEXTSTARTX, view_height-curYpos, "s - toggle attitude stabilizer"); curYpos += TEXTGAP;
+    glut_print(TEXTSTARTX, view_height-curYpos, "s - toggle attitude stabilizer"+ to_string(RotationAngle)); curYpos += TEXTGAP;
     glut_print(TEXTSTARTX, view_height-curYpos, "p - deploy parachute"); curYpos += TEXTGAP;
   }
   glut_print(TEXTSTARTX, view_height-curYpos, "a - toggle autopilot"); curYpos += NEWLINE;
@@ -2072,6 +2073,20 @@ void glut_key (unsigned char k, int x, int y)
   
   case 'o': case 'O':
     if (autopilot_enabled && !landed) AUTO_NEXT = CIRCULARISEORBIT;
+    break;
+
+  case 'k': case 'K':
+    if (!autopilot_enabled && !landed)
+    {
+      RotationAngle += 0.05;
+    }
+    break;
+
+  case 'm': case 'M':
+    if (!autopilot_enabled && !landed)
+    {
+      RotationAngle -= 0.05;
+    }
     break;
 
   case 32:

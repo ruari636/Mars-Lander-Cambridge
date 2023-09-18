@@ -111,6 +111,13 @@ public:
   double abs() const { return sqrt(this->abs2()); }
   vector3d norm() const { double s(this->abs()); if (s==0) return *this; else return vector3d(x/s, y/s, z/s); }
   friend ostream& operator << (ostream &out, const vector3d &v) { out << v.x << ' ' << v.y << ' ' << v.z; return out; }
+  vector3d crossProduct(const vector3d& other) const {
+    vector3d result;
+    result.x = this->y * other.z - this->z * other.y;
+    result.y = this->z * other.x - this->x * other.z;
+    result.z = this->x * other.y - this->y * other.x;
+    return result;
+  }
   double x, y, z;
 private:
 };
@@ -176,6 +183,7 @@ unsigned long throttle_buffer_length, throttle_buffer_pointer;
 double *throttle_buffer = NULL;
 unsigned long long time_program_started;
 extern COPILOT_ACTION AUTO_NEXT;
+extern double RotationAngle;
 
 // Lander state - the visualization routines use velocity_from_positions, so not sensitive to 
 // any errors in the velocity update in numerical_dynamics
