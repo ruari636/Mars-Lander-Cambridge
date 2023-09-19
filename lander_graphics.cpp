@@ -930,7 +930,7 @@ void display_help_text (void)
   if (!autopilot_enabled)
   {
     glut_print(TEXTSTARTX, view_height-curYpos, "Up arrow - more thrust"); curYpos += TEXTGAP;
-    glut_print(TEXTSTARTX, view_height-curYpos, "K and M - Rotate craft in plane of orbit"); curYpos += TEXTGAP;
+    glut_print(TEXTSTARTX, view_height-curYpos, "U and J - Rotate craft in plane of orbit"); curYpos += TEXTGAP;
     glut_print(TEXTSTARTX, view_height-curYpos, "Down arrow - less thrust"); curYpos += NEWLINE;
   }
 
@@ -954,6 +954,7 @@ void display_help_text (void)
   glut_print(TEXTSTARTX, view_height-curYpos, "r - refuel"); curYpos += TEXTGAP;
   glut_print(TEXTSTARTX, view_height-curYpos, "a - toggle autopilot"); curYpos += NEWLINE;
 
+  glut_print(TEXTSTARTX, view_height-curYpos, "m - toggle moon selection"); curYpos += TEXTGAP;
   glut_print(TEXTSTARTX, view_height-curYpos, "l - toggle lighting model"); curYpos += TEXTGAP;
   glut_print(TEXTSTARTX, view_height-curYpos, "t - toggle terrain texture"); curYpos += TEXTGAP;
   glut_print(TEXTSTARTX, view_height-curYpos, "h - toggle help"); curYpos += TEXTGAP;
@@ -1079,7 +1080,17 @@ void draw_orbital_window (void)
   glMultMatrixd(m);
   if (orbital_zoom > 2.0) { // gradual pan towards the lander when zoomed in
     sf = 1.0 - exp((2.0-orbital_zoom)/5.0);
-    glTranslated(-sf*position.x, -sf*position.y, -sf*position.z);
+    if (MoonSelected)
+    {
+      glTranslated(sf*MoonRelPos.x, sf*MoonRelPos.y, sf*MoonRelPos.z);
+    }
+    else
+    { glTranslated(-sf*position.x, -sf*position.y, -sf*position.z); }
+  }
+  
+  if (MoonSelected)
+  {
+    glTranslated(-MoonPos.x, -MoonPos.y, -MoonPos.z);
   }
 
   if (static_lighting) {
@@ -1120,11 +1131,27 @@ void draw_orbital_window (void)
     slices = 16; stacks = 10;
   }
   gluQuadricDrawStyle(quadObj, GLU_FILL);
-  gluSphere(quadObj, (1.0 - 0.01/orbital_zoom)*MARS_RADIUS * 0.3, slices, stacks);
+  gluSphere(quadObj, (1.0 - 0.01/orbital_zoom)*MARS_RADIUS * MOONRADIUSRATIO, slices, stacks);
   glColor3f(0.31, 0.16, 0.11);
   gluQuadricDrawStyle(quadObj, GLU_LINE);
-  gluSphere(quadObj, MARS_RADIUS * 0.3, slices, stacks);
+  gluSphere(quadObj, MARS_RADIUS * MOONRADIUSRATIO, slices, stacks);
   glPopMatrix();
+
+  // Draw previous moon positions in cyan that fades with time
+  glDisable(GL_LIGHTING);
+  glEnable(GL_BLEND);
+  glLineWidth(1.0);
+  glBegin(GL_LINE_STRIP);
+  glColor3f(0.0, 1.0, 1.0);
+  glVertex3d(MoonPos.x, MoonPos.y, MoonPos.z);
+  j = (track_moon.p+N_TRACK-1)%N_TRACK;
+  for (i=0; i<track_moon.n; i++) {
+    glColor4f(0.0, 0.75*(N_TRACK-i)/N_TRACK, 0.75*(N_TRACK-i)/N_TRACK, 1.0*(N_TRACK-i)/N_TRACK);
+    glVertex3d(track_moon.pos[j].x, track_moon.pos[j].y, track_moon.pos[j].z); 
+    j = (j+N_TRACK-1)%N_TRACK;
+  }
+  glEnd();
+  glDisable(GL_BLEND);
   
   // Draw previous lander positions in cyan that fades with time
   glDisable(GL_LIGHTING);
@@ -1315,7 +1342,7 @@ void update_closeup_coords (void)
   }
 }
 
-void draw_moon_closeup(double* m2, vector3d MoonRelPos)
+void draw_moon_closeup(double* m2)
 {
   vector3d MoonRenderPos = MoonRelPos / GLUMASSIVEDISTSCALER;
   glColor3f(1.0, 1.0, 1.0);
@@ -1450,10 +1477,9 @@ void draw_closeup_window (void)
     glPopMatrix(); // back to the view's world coordinate system
   }
 
-  vector3d MoonRelPos = MoonPos - position;
   if (MoonRelPos.abs2() > position.abs2())
   {
-    draw_moon_closeup(m2, MoonRelPos);
+    draw_moon_closeup(m2);
   }
 
   // Surface colour
@@ -1596,7 +1622,7 @@ void draw_closeup_window (void)
 
   if (MoonRelPos.abs2() < position.abs2())
   {
-    draw_moon_closeup(m2, MoonRelPos);
+    draw_moon_closeup(m2);
   }
 
   // Work out drag on lander - if it's high, we will surround the lander with an incandescent glow. Also
@@ -1800,6 +1826,9 @@ void update_visualization (void)
     track.p++; if (track.p == N_TRACK) track.p = 0;
     last_track_position = position;
   }
+  track_moon.pos[track_moon.p] = MoonPos;
+  track_moon.n++; if (track_moon.n > N_TRACK) track_moon.n = N_TRACK;
+  track_moon.p++; if (track_moon.p == N_TRACK) track_moon.p = 0;
 
   // Redraw everything
   refresh_all_subwindows();
@@ -1919,6 +1948,7 @@ void reset_simulation (void)
   fuel = 1.0;
 
   // Restore initial lander state
+  MoonSelected = false;
   initialize_simulation();
 
   // Check whether the lander is underground - if so, make sure it doesn't move anywhere
@@ -1944,6 +1974,8 @@ void reset_simulation (void)
   simulation_time = 0.0;  
   track.n = 0;
   track.p = 0;
+  track_moon.n = 0;
+  track_moon.p = 0;
   parachute_lost = false;
   closeup_coords.initialized = false;
   closeup_coords.backwards = false;
@@ -2362,18 +2394,23 @@ void glut_key (unsigned char k, int x, int y)
   case 'r': case 'R':
     fuel = 1.0;
 
-  case 'k': case 'K':
+  case 'u': case 'U':
     if (!autopilot_enabled && !landed)
     {
       RotationAngle += 0.05;
     }
     break;
 
-  case 'm': case 'M':
+  case 'j': case 'J':
     if (!autopilot_enabled && !landed)
     {
       RotationAngle -= 0.05;
     }
+    break;
+
+  case 'm': case 'M':
+    if (MoonSelected) MoonSelected = false;
+    else MoonSelected = true;
     break;
 
   case 32:

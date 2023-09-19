@@ -21,16 +21,15 @@ using namespace std;
 
 COPILOT_ACTION AUTO_NEXT;
 COPILOT_ACTION TEMPCOMMAND;
-double MoonMass;
-double MoonDistance;
-double MoonOmega;
 vector3d MoonPos;
+vector3d MoonRelPos;
 
 int CustomOrbitInput [2 * INPUTRESOLUTION + 2] = { 0 }; // extra two spaces are for the exponents
 int CurrentSelection;
 double InputApogee;
 double InputPerigee;
 bool TakingInput;
+bool MoonGravityEnabled;
 
 void autopilot (void)
 {
@@ -77,18 +76,19 @@ void numerical_dynamics (void)
   // This is the function that performs the numerical integration to update the
   // lander's pose. The time step is delta_t (global variable).
 {
-  // INSERT YOUR CODE HERE
+  MoonPos = {-MOONDISTANCE * sin(MOONOMEGA * simulation_time), MOONDISTANCE * cos(MOONOMEGA * simulation_time), 0.0};
+  MoonRelPos = MoonPos - position;  
+
   FGrav = -position.norm() * ((MARS_MASS * LANDERMASS * GRAVITY) / (position.abs2()));
+  if (MoonGravityEnabled)
+  {
+    FGrav += MoonRelPos.norm() * ((MOONMASS * LANDERMASS * GRAVITY) / (MoonRelPos.abs2()));;
+  }
   FDragLander = pow(LANDER_SIZE, 2) * DRAGCONSTANT(DRAG_COEF_LANDER) * VELCONSTANT;
   FDragChute = pow(LANDER_SIZE * 2, 2) * 5 * DRAGCONSTANT(DRAG_COEF_CHUTE) * VELCONSTANT;
   Thrust = thrust_wrt_world();
   acceleration = (FGrav + FDragLander + Thrust) / (double)LANDERMASS;
   FaceDirection(VecAtAngleToPosInPlane(RotationAngle));
-  
-  MoonMass = MARS_MASS * 0.3 * 0.3 * 0.3;
-  MoonDistance = 10000000.0;
-  MoonOmega = sqrt(MoonMass * GRAVITY / (pow(MoonDistance, 3.0)));
-  MoonPos = {-MoonDistance * sin(MoonOmega * simulation_time), MoonDistance * cos(MoonOmega * simulation_time), 0.0};
 
 #if defined(USEVERLET)
   if (simulation_time == 0)
@@ -124,6 +124,7 @@ void initialize_simulation (void)
   RotationAngle = 0.0;
   TakingInput = false;
   CurrentSelection = 0;
+  MoonGravityEnabled = true;
   // The parameters to set are:
   // position - in Cartesian planetary coordinate system (m)
   // velocity - in Cartesian planetary coordinate system (m/s)
@@ -146,7 +147,7 @@ void initialize_simulation (void)
   case 0:
     // a circular equatorial orbit
     position = vector3d(1.2*MARS_RADIUS, 0.0, 0.0);
-    velocity = vector3d(0.0, -3247.087385863725, 0.0);
+    velocity = vector3d(0.0, 3247.087385863725, 0.0);
     orientation = vector3d(0.0, 90.0, 0.0);
     delta_t = 0.1;
     parachute_status = NOT_DEPLOYED;
@@ -211,7 +212,7 @@ void initialize_simulation (void)
 
   case 6:
     position = vector3d(20428000.0, 0.0, 0.0);
-    velocity = vector3d(0.0, -1446.0, 0.0);
+    velocity = vector3d(0.0, 1446.0, 0.0);
     orientation = vector3d(0.0, 180.0, 0.0);
     delta_t = 0.1;
     parachute_status = NOT_DEPLOYED;

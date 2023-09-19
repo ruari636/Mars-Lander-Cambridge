@@ -86,6 +86,11 @@
 #define MAX_IMPACT_GROUND_SPEED 1.0 // (m/s)
 #define MAX_IMPACT_DESCENT_RATE 1.0 // (m/s)
 
+#define MOONRADIUSRATIO 0.27
+#define MOONMASS MARS_MASS * MOONRADIUSRATIO * MOONRADIUSRATIO * MOONRADIUSRATIO * 0.5
+#define MOONDISTANCE 15 * MARS_RADIUS
+#define MOONOMEGA sqrt(MARS_MASS * GRAVITY / (pow(MOONDISTANCE, 3.0)))
+
 using namespace std;
 
 class vector3d {
@@ -166,10 +171,9 @@ extern int CustomOrbitInput [2 * INPUTRESOLUTION + 2]; // extra two spaces are f
 extern int CurrentSelection;
 extern double InputApogee;
 extern double InputPerigee;
-extern double MoonMass;
-extern double MoonDistance;
-extern double MoonOmega;
 extern vector3d MoonPos;
+extern vector3d MoonRelPos;
+extern bool MoonGravityEnabled;
 
 //********************************************************************//
 
@@ -182,6 +186,7 @@ GLuint terrain_texture;
 GLuint moon_terrain_texture;
 short throttle_control;
 track_t track;
+track_t track_moon;
 bool texture_available;
 
 // Simulation parameters
@@ -202,6 +207,7 @@ bool do_texture = true;
 unsigned long throttle_buffer_length, throttle_buffer_pointer;
 double *throttle_buffer = NULL;
 unsigned long long time_program_started;
+bool MoonSelected = false;
 extern COPILOT_ACTION AUTO_NEXT;
 extern COPILOT_ACTION TEMPCOMMAND;
 extern double RotationAngle;
