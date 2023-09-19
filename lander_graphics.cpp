@@ -1564,42 +1564,23 @@ void draw_closeup_window (void)
     glEnable(GL_DEPTH_TEST);
 
   }
-  
+
+
   /*******************************************************************************************************************************/
   // Draw moon
-  // Surface colour
-  double matrix[16]; // 4x4 transformation matrix for lander to orbital system
-  matrix[0] = t.x;
-  matrix[1] = t.y;
-  matrix[2] = t.z;
-  matrix[3] = 0.0;
-
-  double forwardFactor = closeup_coords.backwards ? -1.0 : 1.0;
-  matrix[4] = n.y;
-  matrix[5] = n.x;
-  matrix[6] = n.y;
-  matrix[7] = 0.0;
-
-  matrix[8] = s.x;
-  matrix[9] = s.y;
-  matrix[10] = s.z;
-  matrix[11] = 0.0;
-
-  matrix[12] = position.x;
-  matrix[13] = position.y;
-  matrix[14] = position.z;
-  matrix[15] = 1.0;
-
+  vector3d MoonRelPos = MoonPos - position;
+  double distance = round(MoonRelPos.abs());
+  vector3d MoonRelDir = MoonRelPos.norm();
   glColor3f(1.0, 1.0, 1.0);
   glPushMatrix();
-  glMultMatrixd(matrix); // now in the planetary coordinate system
-  glTranslated(MoonPos.x, MoonPos.y, MoonPos.z);
+  glMultMatrixd(m2); // now in the planetary coordinate system
+  glTranslated(round(MoonRelPos.x), round(MoonRelPos.y), round(MoonRelPos.z));
+  glRotated(360.0*simulation_time/MARS_DAY, 0.0, 0.0, 1.0); // to make the moon spin
   glutMottledMoon(MARS_RADIUS * 0.3, 160, 100);
 
   glPopMatrix(); // back to the view's world coordinate system
-  glEnable(GL_DEPTH_TEST);
   /*******************************************************************************************************************************/
-
+  
   glDisable(GL_FOG); // fog only applies to the ground
   dark_side = (static_lighting && (position.y > 0.0) && (sqrt(position.x*position.x + position.z*position.z) < MARS_RADIUS));
   if (dark_side) { // in the shadow of the planet, we need some diffuse lighting to highlight the lander
