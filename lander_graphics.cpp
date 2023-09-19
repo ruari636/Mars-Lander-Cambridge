@@ -75,6 +75,7 @@
 // OpenGL(TM) is a trademark of Silicon Graphics, Inc.
 
 #define DECLARE_GLOBAL_VARIABLES
+#define GLUMASSIVEDISTSCALER 100
 #include "lander.h"
 #include "lander_special_func.h"
 
@@ -1314,6 +1315,19 @@ void update_closeup_coords (void)
   }
 }
 
+void draw_moon_closeup(double* m2, vector3d MoonRelPos)
+{
+  vector3d MoonRenderPos = MoonRelPos / GLUMASSIVEDISTSCALER;
+  glColor3f(1.0, 1.0, 1.0);
+  glPushMatrix();
+  glMultMatrixd(m2); // now in the planetary coordinate system
+  glTranslated(MoonRenderPos.x, MoonRenderPos.y, MoonRenderPos.z);
+  glRotated(360.0*simulation_time/MARS_DAY, 0.0, 0.0, 1.0); // to make the moon spin
+  glutMottledMoon(MARS_RADIUS * 0.3 / GLUMASSIVEDISTSCALER, 160, 100);
+
+  glPopMatrix(); // back to the view's world coordinate system
+}
+
 void draw_closeup_window (void)
   // Draws the close-up view of the lander
 {
@@ -1436,6 +1450,12 @@ void draw_closeup_window (void)
     glPopMatrix(); // back to the view's world coordinate system
   }
 
+  vector3d MoonRelPos = MoonPos - position;
+  if (MoonRelPos.abs2() > position.abs2())
+  {
+    draw_moon_closeup(m2, MoonRelPos);
+  }
+
   // Surface colour
   glColor3f(0.63, 0.33, 0.22);
 
@@ -1545,10 +1565,12 @@ void draw_closeup_window (void)
     if (altitude > EXOSPHERE) {
 
       // Draw the planet reduced size at a reduced displacement, to avoid numerical OpenGL problems with huge viewing distances.
-      glTranslated(0.0, -MARS_RADIUS, 0.0);
+      //glTranslated(0.0, -MARS_RADIUS, 0.0);
       glMultMatrixd(m2); // now in the planetary coordinate system
+      vector3d RenderPosition = -position / GLUMASSIVEDISTSCALER;
+      glTranslated(RenderPosition.x, RenderPosition.y, RenderPosition.z);
       glRotated(360.0*simulation_time/MARS_DAY, 0.0, 0.0, 1.0); // to make the planet spin
-      glutMottledSphere(MARS_RADIUS * (MARS_RADIUS / (altitude + MARS_RADIUS)), 160, 100);
+      glutMottledSphere(MARS_RADIUS / GLUMASSIVEDISTSCALER, 160, 100);
 
     } else {
 
@@ -1565,27 +1587,16 @@ void draw_closeup_window (void)
 
   }
 
-
-  /*******************************************************************************************************************************/
-  // Draw moon
-  vector3d MoonRelPos = MoonPos - position;
-  double distance = round(MoonRelPos.abs());
-  vector3d MoonRelDir = MoonRelPos.norm();
-  glColor3f(1.0, 1.0, 1.0);
-  glPushMatrix();
-  glMultMatrixd(m2); // now in the planetary coordinate system
-  glTranslated(round(MoonRelPos.x), round(MoonRelPos.y), round(MoonRelPos.z));
-  glRotated(360.0*simulation_time/MARS_DAY, 0.0, 0.0, 1.0); // to make the moon spin
-  glutMottledMoon(MARS_RADIUS * 0.3, 160, 100);
-
-  glPopMatrix(); // back to the view's world coordinate system
-  /*******************************************************************************************************************************/
-  
   glDisable(GL_FOG); // fog only applies to the ground
   dark_side = (static_lighting && (position.y > 0.0) && (sqrt(position.x*position.x + position.z*position.z) < MARS_RADIUS));
   if (dark_side) { // in the shadow of the planet, we need some diffuse lighting to highlight the lander
     glDisable(GL_LIGHT2); glDisable(GL_LIGHT3); 
     glEnable(GL_LIGHT4); glEnable(GL_LIGHT5);
+  }
+
+  if (MoonRelPos.abs2() < position.abs2())
+  {
+    draw_moon_closeup(m2, MoonRelPos);
   }
 
   // Work out drag on lander - if it's high, we will surround the lander with an incandescent glow. Also
