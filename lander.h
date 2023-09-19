@@ -179,6 +179,7 @@ extern vector3d MoonPos;
 int main_window, closeup_window, orbital_window, instrument_window, view_width, view_height, win_width, win_height;
 GLUquadricObj *quadObj;
 GLuint terrain_texture;
+GLuint moon_terrain_texture;
 short throttle_control;
 track_t track;
 bool texture_available;

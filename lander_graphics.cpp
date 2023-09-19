@@ -427,6 +427,80 @@ void glutMottledSphere (GLdouble radius, GLint slices, GLint stacks)
     free(sint2); free(cost2);
 }
 
+void glutMottledMoon (GLdouble radius, GLint slices, GLint stacks)
+  // Modified from freeglut's glutSolidSphere, we use this to draw a mottled sphere by modulating
+  // the vertex colours.
+{
+    int i, j;
+    unsigned short rtmp = 0;
+    double z0, z1, r0, r1, *sint1, *cost1, *sint2, *cost2;
+    double *rnd1, *rnd2, *new_r, *old_r, *tmp;
+    double mottle = 0.06;
+
+    fghCircleTable(&sint1, &cost1, -slices);
+    fghCircleTable(&sint2, &cost2, stacks*2);
+    rnd1 = (double*) calloc(sizeof(double), slices+1);
+    rnd2 = (double*) calloc(sizeof(double), slices+1);
+    z0 = 1.0; z1 = cost2[(stacks>0)?1:0];
+    r0 = 0.0; r1 = sint2[(stacks>0)?1:0];
+
+    // Top cap
+    glBegin(GL_TRIANGLE_FAN);
+    glNormal3d(0,0,1);
+    glColor3f(1.0, 1.0, 1.0);
+    glVertex3d(0,0,radius);
+    new_r = rnd1;
+    for (j=slices; j>=0; j--) {
+      glNormal3d(cost1[j]*r1, sint1[j]*r1, z1);
+      if (j) {
+	new_r[j] = (1.0-mottle) + mottle*randtab[rtmp];
+	rtmp = (rtmp+1)%N_RAND;
+      } else new_r[j] = new_r[slices];
+      glColor3f(new_r[j]*1.0, new_r[j]*1.0, new_r[j]*1.0);
+      glVertex3d(cost1[j]*r1*radius, sint1[j]*r1*radius, z1*radius);
+    }
+    glEnd();
+
+    // Middle stacks
+    old_r = rnd1; new_r = rnd2;
+    for (i=1; i<stacks-1; i++) {
+      z0 = z1; z1 = cost2[i+1];
+      r0 = r1; r1 = sint2[i+1];
+      glBegin(GL_QUAD_STRIP);
+      for (j=0; j<=slices; j++) {
+	glNormal3d(cost1[j]*r1, sint1[j]*r1, z1);
+	if (j != slices) {
+	  new_r[j] = (1.0-mottle) + mottle*randtab[rtmp];
+	  rtmp = (rtmp+1)%N_RAND;
+	} else new_r[j] = new_r[0];
+	glColor3f(new_r[j]*1.0, new_r[j]*1.0, new_r[j]*1.0);
+	glVertex3d(cost1[j]*r1*radius, sint1[j]*r1*radius, z1*radius);
+	glNormal3d(cost1[j]*r0, sint1[j]*r0, z0);
+	glColor3f(old_r[j]*1.0, old_r[j]*1.0, old_r[j]*1.0);
+	glVertex3d(cost1[j]*r0*radius, sint1[j]*r0*radius, z0*radius);
+      }
+      tmp = old_r; old_r = new_r; new_r = tmp;
+      glEnd();
+    }
+
+    // Bottom cap
+    z0 = z1; r0 = r1;
+    glBegin(GL_TRIANGLE_FAN);
+    glNormal3d(0,0,-1);
+    glColor3f(1.0, 1.0, 1.0);
+    glVertex3d(0,0,-radius);
+    for (j=0; j<=slices; j++) {
+      glNormal3d(cost1[j]*r0, sint1[j]*r0, z0);
+      glColor3f(old_r[j]*1.0, old_r[j]*1.0, old_r[j]*1.0);
+      glVertex3d(cost1[j]*r0*radius, sint1[j]*r0*radius, z0*radius);
+    }
+    glEnd();
+
+    free(rnd1); free(rnd2);
+    free(sint1); free(cost1);
+    free(sint2); free(cost2);
+}
+
 void glutCone (GLdouble base, GLdouble height, GLint slices, GLint stacks, bool closed)
   // Modified from freeglut's glutSolidCone, we need this (a) to draw cones without bases and
   // (b) to draw cones with bases, which glutSolidCone does not do correctly under Windows,
@@ -1124,7 +1198,7 @@ void draw_parachute (double d)
   glEnable(GL_CULL_FACE);
 }
 
-bool generate_terrain_texture (void)
+bool generate_terrain_texture (GLuint& texture)
   // Generates random texture map for surface terrain, with mipmap to avoid aliasing at the horizon
 {
   unsigned char *tex_image;
@@ -1136,8 +1210,38 @@ bool generate_terrain_texture (void)
   texture_ok = false;
   tex_image = (unsigned char*) calloc(sizeof(unsigned char), TERRAIN_TEXTURE_SIZE*TERRAIN_TEXTURE_SIZE);
   for (x=0; x<TERRAIN_TEXTURE_SIZE*TERRAIN_TEXTURE_SIZE; x++) tex_image[x] = 192 + (unsigned char) (63.0*rand()/RAND_MAX);
-  glGenTextures(1, &terrain_texture);
-  glBindTexture(GL_TEXTURE_2D, terrain_texture);
+  glGenTextures(1, &texture);
+  glBindTexture(GL_TEXTURE_2D, texture);
+  while (!texture_ok && (ts >= 256)) { // try progressively smaller texture maps, give up below 256x256
+    glGetError(); // clear error
+    if (!gluBuild2DMipmaps(GL_TEXTURE_2D, GL_LUMINANCE, ts, ts, GL_LUMINANCE, GL_UNSIGNED_BYTE, tex_image) && (glGetError() == GL_NO_ERROR)) texture_ok = true;
+    else ts /= 2;
+  }
+  free(tex_image);
+  if (texture_ok) {
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+    return true;
+  } else return false;
+}
+
+bool generate_terrain_texture_moon (GLuint& texture)
+  // Generates random texture map for surface terrain, with mipmap to avoid aliasing at the horizon
+{
+  unsigned char *tex_image;
+  unsigned long x;
+  GLsizei ts;
+  bool texture_ok;
+
+  ts = TERRAIN_TEXTURE_SIZE;
+  texture_ok = false;
+  tex_image = (unsigned char*) calloc(sizeof(unsigned char), TERRAIN_TEXTURE_SIZE*TERRAIN_TEXTURE_SIZE);
+  for (x=0; x<TERRAIN_TEXTURE_SIZE*TERRAIN_TEXTURE_SIZE; x++) tex_image[x] = 0;
+  glGenTextures(1, &texture);
+  glBindTexture(GL_TEXTURE_2D, texture);
   while (!texture_ok && (ts >= 256)) { // try progressively smaller texture maps, give up below 256x256
     glGetError(); // clear error
     if (!gluBuild2DMipmaps(GL_TEXTURE_2D, GL_LUMINANCE, ts, ts, GL_LUMINANCE, GL_UNSIGNED_BYTE, tex_image) && (glGetError() == GL_NO_ERROR)) texture_ok = true;
@@ -1232,6 +1336,7 @@ void draw_closeup_window (void)
   else transition_altitude = TRANSITION_ALTITUDE_NO_TEXTURE;
   ground_plane_size = 5.0*transition_altitude;
 
+  
   // Work out an atmospheric haze colour based on prevailing atmospheric density. The power law in the
   // expression below couples with the fog calculation further down, to ensure that the fog doesn't dim
   // the scene on the way down.
@@ -1459,19 +1564,40 @@ void draw_closeup_window (void)
     glEnable(GL_DEPTH_TEST);
 
   }
-
+  
   /*******************************************************************************************************************************/
   // Draw moon
-
-  // Draw spherical moon - can disable depth test (for speed)
-  glPushMatrix();
-  glMultMatrixd(m2);
   // Surface colour
+  double matrix[16]; // 4x4 transformation matrix for lander to orbital system
+  matrix[0] = t.x;
+  matrix[1] = t.y;
+  matrix[2] = t.z;
+  matrix[3] = 0.0;
+
+  double forwardFactor = closeup_coords.backwards ? -1.0 : 1.0;
+  matrix[4] = n.y;
+  matrix[5] = n.x;
+  matrix[6] = n.y;
+  matrix[7] = 0.0;
+
+  matrix[8] = s.x;
+  matrix[9] = s.y;
+  matrix[10] = s.z;
+  matrix[11] = 0.0;
+
+  matrix[12] = position.x;
+  matrix[13] = position.y;
+  matrix[14] = position.z;
+  matrix[15] = 1.0;
+
   glColor3f(1.0, 1.0, 1.0);
-  glTranslated(-MoonPos.x, -MoonPos.y, MoonPos.z);
-  glutMottledSphere(MARS_RADIUS * 0.3, 160, 100);
+  glPushMatrix();
+  glMultMatrixd(matrix); // now in the planetary coordinate system
+  glTranslated(MoonPos.x, MoonPos.y, MoonPos.z);
+  glutMottledMoon(MARS_RADIUS * 0.3, 160, 100);
 
   glPopMatrix(); // back to the view's world coordinate system
+  glEnable(GL_DEPTH_TEST);
   /*******************************************************************************************************************************/
 
   glDisable(GL_FOG); // fog only applies to the ground
@@ -2314,7 +2440,8 @@ int main (int argc, char* argv[])
   glutMotionFunc(closeup_mouse_motion);
   glutKeyboardFunc(glut_key);
   glutSpecialFunc(glut_special);
-  texture_available = generate_terrain_texture();
+  texture_available = generate_terrain_texture(terrain_texture);
+  //generate_terrain_texture_moon(moon_terrain_texture);
   if (!texture_available) do_texture = false;
   closeup_offset = 50.0;
   closeup_xr = 10.0;
