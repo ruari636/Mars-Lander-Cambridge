@@ -21,12 +21,16 @@ using namespace std;
 
 COPILOT_ACTION AUTO_NEXT;
 COPILOT_ACTION TEMPCOMMAND;
-bool TakingInput;
+double MoonMass;
+double MoonDistance;
+double MoonOmega;
+vector3d MoonPos;
 
 int CustomOrbitInput [2 * INPUTRESOLUTION + 2] = { 0 }; // extra two spaces are for the exponents
 int CurrentSelection;
 double InputApogee;
 double InputPerigee;
+bool TakingInput;
 
 void autopilot (void)
 {
@@ -81,6 +85,11 @@ void numerical_dynamics (void)
   acceleration = (FGrav + FDragLander + Thrust) / (double)LANDERMASS;
   FaceDirection(VecAtAngleToPosInPlane(RotationAngle));
   
+  MoonMass = MARS_MASS * 0.3 * 0.3 * 0.3;
+  MoonDistance = 10000000.0;
+  MoonOmega = sqrt(MoonMass * GRAVITY / (pow(MoonDistance, 3.0)));
+  MoonPos = {MoonDistance * sin(MoonOmega * simulation_time), MoonDistance * cos(MoonOmega * simulation_time), 0.0};
+
 #if defined(USEVERLET)
   if (simulation_time == 0)
   {  positionNMinus1 = position - velocity * delta_t - acceleration * delta_t * delta_t; }

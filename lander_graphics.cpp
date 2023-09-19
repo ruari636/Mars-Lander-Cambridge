@@ -1017,6 +1017,7 @@ void draw_orbital_window (void)
   glColor3f(0.63, 0.33, 0.22);
   glLineWidth(1.0);
   glPushMatrix();
+  glTranslatef(0.0, 0.0, 0.0); // this can be used to move the ball
   glRotated(360.0*simulation_time/MARS_DAY, 0.0, 0.0, 1.0); // to make the planet spin
   if (orbital_zoom > 1.0) {
     slices = (int)(16*orbital_zoom); if (slices > 160) slices = 160;
@@ -1031,6 +1032,25 @@ void draw_orbital_window (void)
   gluSphere(quadObj, MARS_RADIUS, slices, stacks);
   glPopMatrix();
 
+  // Draw moon
+  glColor3f(1.0, 1.0, 1.0);
+  glLineWidth(1.0);
+  glPushMatrix();
+  glTranslatef(MoonPos.x, MoonPos.y, MoonPos.z); // this can be used to move the ball
+  glRotated(360.0*simulation_time/MARS_DAY, 0.0, 0.0, 1.0); // moons tend to rotate at the same speed as their planets
+  if (orbital_zoom > 1.0) {
+    slices = (int)(16*orbital_zoom); if (slices > 160) slices = 160;
+    stacks = (int)(10*orbital_zoom); if (stacks > 100) stacks = 100;
+  } else {
+    slices = 16; stacks = 10;
+  }
+  gluQuadricDrawStyle(quadObj, GLU_FILL);
+  gluSphere(quadObj, (1.0 - 0.01/orbital_zoom)*MARS_RADIUS * 0.3, slices, stacks);
+  glColor3f(0.31, 0.16, 0.11);
+  gluQuadricDrawStyle(quadObj, GLU_LINE);
+  gluSphere(quadObj, MARS_RADIUS * 0.3, slices, stacks);
+  glPopMatrix();
+  
   // Draw previous lander positions in cyan that fades with time
   glDisable(GL_LIGHTING);
   glEnable(GL_BLEND);
@@ -1411,7 +1431,8 @@ void draw_closeup_window (void)
     glEnable(GL_DEPTH_TEST);
   
   } else {
-
+    // Surface colour
+    glColor3f(0.63, 0.33, 0.22);
     // Draw spherical planet - can disable depth test (for speed)
     glDisable(GL_DEPTH_TEST);
     glPushMatrix();
@@ -1438,6 +1459,23 @@ void draw_closeup_window (void)
     glEnable(GL_DEPTH_TEST);
 
   }
+
+  /*******************************************************************************************************************************/
+  // Draw moon
+  // Surface colour
+  glColor3f(1.0, 1.0, 1.0);
+
+  // Draw spherical moon - can disable depth test (for speed)
+  glDisable(GL_DEPTH_TEST);
+  glPushMatrix();
+  glTranslated(MoonPos.x, MoonPos.y, MoonPos.z);
+  //glMultMatrixd(m2); // Transform into the moon's coordinate system
+  glRotated(360.0*simulation_time/MARS_DAY, 0.0, 0.0, 1.0); // to make the planet spin
+  glutMottledSphere(MARS_RADIUS * 0.3, 160, 100);
+  
+  glPopMatrix(); // back to the view's world coordinate system
+  glEnable(GL_DEPTH_TEST);
+  /*******************************************************************************************************************************/
 
   glDisable(GL_FOG); // fog only applies to the ground
   dark_side = (static_lighting && (position.y > 0.0) && (sqrt(position.x*position.x + position.z*position.z) < MARS_RADIUS));

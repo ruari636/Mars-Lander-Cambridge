@@ -166,6 +166,10 @@ extern int CustomOrbitInput [2 * INPUTRESOLUTION + 2]; // extra two spaces are f
 extern int CurrentSelection;
 extern double InputApogee;
 extern double InputPerigee;
+extern double MoonMass;
+extern double MoonDistance;
+extern double MoonOmega;
+extern vector3d MoonPos;
 
 //********************************************************************//
 
