@@ -21,8 +21,6 @@ using namespace std;
 
 COPILOT_ACTION AUTO_NEXT;
 COPILOT_ACTION TEMPCOMMAND;
-double NextApogee;
-double NextPerigee;
 
 void autopilot (void)
 {
@@ -45,7 +43,8 @@ void autopilot (void)
         CirculariseCurrentOrbit();
         break;
       case (CUSTOMORBIT):
-        MoveToOrbitInPlane(NextApogee, NextPerigee); // Does a Hoffman transfer when data has been collected
+        MoveToOrbitInPlane(MARS_RADIUS + 1500000, MARS_RADIUS + 800000); // Does a Hoffman transfer when data has been collected
+        if ((done & NEXTAPOGEEMET + NEXTPERIGEEMET) == NEXTAPOGEEMET + NEXTPERIGEEMET) AUTO_NEXT = SUICIDELANDING;
         break;
       case (DONOTHING):
         break;
@@ -106,8 +105,6 @@ void initialize_simulation (void)
   initialize_special_func();
   AUTO_NEXT = DONOTHING;
   RotationAngle = 0.0;
-  NextApogee = NULL;
-  NextPerigee = NULL;
   // The parameters to set are:
   // position - in Cartesian planetary coordinate system (m)
   // velocity - in Cartesian planetary coordinate system (m/s)

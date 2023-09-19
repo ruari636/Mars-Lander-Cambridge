@@ -157,6 +157,13 @@ enum COPILOT_ACTION
   DONOTHING
 };
 
+//*******************************************************************//
+//                variables accessed in all the files                //
+
+extern uint16_t done;
+
+//********************************************************************//
+
 #ifdef DECLARE_GLOBAL_VARIABLES // actual declarations of all global variables for lander_graphics.cpp
 
 // GL windows and objects

@@ -76,6 +76,7 @@
 
 #define DECLARE_GLOBAL_VARIABLES
 #include "lander.h"
+#include "lander_special_func.h"
 
 void invert (double m[], double mout[])
   // Inverts a 4x4 OpenGL rotation matrix
@@ -2045,7 +2046,7 @@ void glut_key (unsigned char k, int x, int y)
     set_orbital_projection_matrix();
     if (paused || landed) refresh_all_subwindows();
     break;
-
+  
   case 'l': case 'L':
     // l or L - toggle lighting model
     static_lighting = !static_lighting;
@@ -2078,6 +2079,10 @@ void glut_key (unsigned char k, int x, int y)
   case 'o': case 'O':
     if (autopilot_enabled && !landed) AUTO_NEXT = CIRCULARISEORBIT;
     break;
+
+  case 'c': case 'C':
+    done &= !ORBITCHANGECALCDONE;
+    if (autopilot_enabled && !landed) AUTO_NEXT = CUSTOMORBIT;
 
   case 'r': case 'R':
     fuel = 1.0;
