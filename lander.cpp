@@ -43,7 +43,7 @@ void autopilot (void)
         CirculariseCurrentOrbit();
         break;
       case (CUSTOMORBIT):
-        MoveToOrbitInPlane(MARS_RADIUS + 1500000, MARS_RADIUS + 800000); // Does a Hoffman transfer when data has been collected
+        MoveToOrbitInPlane(MARS_RADIUS + 1500000, MARS_RADIUS + 1000000); // Does a Hoffman transfer when data has been collected
         if ((done & NEXTAPOGEEMET + NEXTPERIGEEMET) == NEXTAPOGEEMET + NEXTPERIGEEMET) AUTO_NEXT = SUICIDELANDING;
         break;
       case (DONOTHING):

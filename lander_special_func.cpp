@@ -190,24 +190,38 @@ void AutoDeployParachuteWhenReady()
     }
 }
 
+bool WithinError(double x0, double x1)
+{
+    return x1 < x0 * 1.01 && x1 > x0 * 0.99;
+}
+
 void UpdateHeights()
 {
    previous_descending = descending;
    descending = signbit(climb_speed);
    if (!descending && previous_descending) // we have just gone past the lowest point in the orbit, measure it
    {
-        if (Lowest_Height < position.abs() * 1.01) done |= LOWESTHEIGHTMEASUREDMASK;// We have gone past the lowest point twice and it is the same so we are in a permanent orbit
         Lowest_Height = position.abs();
+        done |= LOWESTHEIGHTMEASUREDMASK;
+        if (!WithinError(Lowest_Height, position.abs()))
+        {
+            Heights_Updated = false;
+            done &= !LOWESTHEIGHTMEASUREDMASK;
+        }
    }
    else if (descending && !previous_descending) // we have just gone past the highest point in the orbit, measure it
    {
         Greatest_Height = position.abs();
         done |= GREATESTHEIGHTMEASUREDMASK;
+        if (!WithinError(Greatest_Height, position.abs()))
+        {
+            Heights_Updated = false;
+            done &= !GREATESTHEIGHTMEASUREDMASK;
+        }
    }
    if (done & (LOWESTHEIGHTMEASUREDMASK + GREATESTHEIGHTMEASUREDMASK) == (LOWESTHEIGHTMEASUREDMASK + GREATESTHEIGHTMEASUREDMASK))
    {
         Heights_Updated = true;
-        done &= !(LOWESTHEIGHTMEASUREDMASK + GREATESTHEIGHTMEASUREDMASK); // reset the flags that correspond to UpdateHeights
    }
 }
 
@@ -283,7 +297,7 @@ void Deorbit()
 
 void ChangeApogee(double NextApogee)
 {
-    if (position.abs() <= Lowest_Height * 1.01 && (done & NEXTAPOGEEMET) == 0)
+    if (position.abs() <= Lowest_Height * 1.001 && (done & NEXTAPOGEEMET) == 0)
     {
         if ((done & ORBITCHANGECALCDONE) == 0)
         {
@@ -297,9 +311,9 @@ void ChangeApogee(double NextApogee)
         OrbitChangeBurner();
         if (fuel <= Planned_Fuel_Left)
         {
-            done |= NEXTAPOGEEMET;
-            done &= !ORBITCHANGECALCDONE;
             ClearHeights();
+            done &= !ORBITCHANGECALCDONE;
+            done |= NEXTAPOGEEMET;
         }
     }
 }
@@ -310,30 +324,30 @@ void ChangePerigee(double NextPerigee)
     {
         if ((done & ORBITCHANGECALCDONE) == 0)
         {
-            double fuelToBurn = -calculateFuelBurnedForNewPerigee(Greatest_Height, // set to negative as we are burning in direction of travel
+            double fuelToBurn = calculateFuelBurnedForNewPerigee(Greatest_Height, // set to negative as we are burning in direction of travel
                                                             Lowest_Height, NextPerigee);
             Planned_Fuel_Left = fuel - (abs(fuelToBurn) / (FUEL_CAPACITY * FUEL_DENSITY));
             done |= ORBITCHANGECALCDONE;
+            dir = 1 - 2 * signbit(fuelToBurn);
+            iterations++;
         }
         Orbit_Change_Burn = Planned_Fuel_Left > 0.0;
+        FaceDirection(velocity.norm() * dir);
         OrbitChangeBurner();
+        if (fuel <= Planned_Fuel_Left)
+        {
+            ClearHeights();
+            done |= NEXTPERIGEEMET;
+            done &= !ORBITCHANGECALCDONE;
+        }
     }
 }
 
 void CirculariseCurrentOrbit()
 {
-    if (Heights_Updated) // We have collected current data on Apogee and Perigee
+    if (Heights_Updated && (Greatest_Height - Lowest_Height) / Greatest_Height > 0.01) // We have collected current data on Apogee and Perigee and the height difference is outside of error margin
     {
-        if (position.abs() >= Greatest_Height * 0.999) // Only run the burner when we are very close to apogee
-        {
-            if ((done & ORBITCHANGECALCDONE) == 0) iterations++;
-            ChangePerigee(Greatest_Height);
-        }
-    }
-    if (Planned_Fuel_Left <= 0.0 && iterations < 4) // this ensures the orbit gets smoothed 4 times
-    {
-        ClearHeights();
-        done &= !ORBITCHANGECALCDONE;
+        ChangePerigee(Greatest_Height); // Burns near Apogee to raise Perigee to be roughly equal
     }
 }
 
@@ -341,28 +355,13 @@ void MoveToOrbitInPlane(double NextApogee, double NextPerigee)
 {
     if (Heights_Updated)
     {
-        ChangeApogee(NextApogee);
-        
-        if (position.abs() >= Greatest_Height * 0.98
-            && (done & NEXTAPOGEEMET) == 1) // This ensures that we burn at Perigee first, maximising efficiency
+        if ((done & NEXTAPOGEEMET) == 0)
         {
-            done |= NEXTPERIGEEMET;
-            if ((done & ORBITCHANGECALCDONE) == 0)
-            {
-                double fuelToBurn = calculateFuelBurnedForNewPerigee(Greatest_Height, Lowest_Height, NextPerigee);
-                Planned_Fuel_Left = fuel - (abs(fuelToBurn) / (FUEL_CAPACITY * FUEL_DENSITY));
-                done |= ORBITCHANGECALCDONE;
-                dir = 1 - 2 * signbit(fuelToBurn);
-            }
-            Orbit_Change_Burn = Planned_Fuel_Left > 0.0;
-            FaceDirection(velocity.norm() * dir);
-            OrbitChangeBurner();
-            if (fuel <= Planned_Fuel_Left)
-            {
-                done |= NEXTPERIGEEMET;
-                done &= !ORBITCHANGECALCDONE;
-                ClearHeights();
-            }
+            ChangeApogee(NextApogee);
+        }
+        else
+        {
+            ChangePerigee(NextPerigee);
         }
     }
 }
