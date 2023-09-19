@@ -1462,19 +1462,16 @@ void draw_closeup_window (void)
 
   /*******************************************************************************************************************************/
   // Draw moon
-  // Surface colour
-  glColor3f(1.0, 1.0, 1.0);
 
   // Draw spherical moon - can disable depth test (for speed)
-  glDisable(GL_DEPTH_TEST);
   glPushMatrix();
-  glTranslated(MoonPos.x, MoonPos.y, MoonPos.z);
-  //glMultMatrixd(m2); // Transform into the moon's coordinate system
-  glRotated(360.0*simulation_time/MARS_DAY, 0.0, 0.0, 1.0); // to make the planet spin
+  glMultMatrixd(m2);
+  // Surface colour
+  glColor3f(1.0, 1.0, 1.0);
+  glTranslated(-MoonPos.x, -MoonPos.y, MoonPos.z);
   glutMottledSphere(MARS_RADIUS * 0.3, 160, 100);
-  
+
   glPopMatrix(); // back to the view's world coordinate system
-  glEnable(GL_DEPTH_TEST);
   /*******************************************************************************************************************************/
 
   glDisable(GL_FOG); // fog only applies to the ground

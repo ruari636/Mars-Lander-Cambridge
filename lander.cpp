@@ -88,7 +88,7 @@ void numerical_dynamics (void)
   MoonMass = MARS_MASS * 0.3 * 0.3 * 0.3;
   MoonDistance = 10000000.0;
   MoonOmega = sqrt(MoonMass * GRAVITY / (pow(MoonDistance, 3.0)));
-  MoonPos = {MoonDistance * sin(MoonOmega * simulation_time), MoonDistance * cos(MoonOmega * simulation_time), 0.0};
+  MoonPos = {-MoonDistance * sin(MoonOmega * simulation_time), MoonDistance * cos(MoonOmega * simulation_time), 0.0};
 
 #if defined(USEVERLET)
   if (simulation_time == 0)
@@ -211,7 +211,7 @@ void initialize_simulation (void)
 
   case 6:
     position = vector3d(20428000.0, 0.0, 0.0);
-    velocity = vector3d(0.0, 1446.0, 0.0);
+    velocity = vector3d(0.0, -1446.0, 0.0);
     orientation = vector3d(0.0, 180.0, 0.0);
     delta_t = 0.1;
     parachute_status = NOT_DEPLOYED;
