@@ -11,7 +11,6 @@ double Greatest_Height = 0.0;
 double Lowest_Height = DBL_MAX;
 bool Orbit_Change_Burn = false;
 double Planned_Fuel_Left = fuel;
-uint16_t done = 0; // variable containing ored together event flags
 bool SuicideBurnStarted = false;
 double VelDescent;
 bool previous_descending;
@@ -337,8 +336,8 @@ void ChangePerigee(double NextPerigee)
         if (fuel <= Planned_Fuel_Left)
         {
             ClearHeights();
-            done |= NEXTPERIGEEMET;
             done &= !ORBITCHANGECALCDONE;
+            done |= NEXTPERIGEEMET;
         }
     }
 }

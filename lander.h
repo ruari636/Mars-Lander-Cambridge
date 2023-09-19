@@ -160,7 +160,12 @@ enum COPILOT_ACTION
 //*******************************************************************//
 //                variables accessed in all the files                //
 
-extern uint16_t done;
+static uint16_t done;
+#define INPUTRESOLUTION 5
+extern int CustomOrbitInput [2 * INPUTRESOLUTION + 2]; // extra two spaces are for the exponents
+extern int CurrentSelection;
+extern double InputApogee;
+extern double InputPerigee;
 
 //********************************************************************//
 
@@ -195,6 +200,7 @@ unsigned long long time_program_started;
 extern COPILOT_ACTION AUTO_NEXT;
 extern COPILOT_ACTION TEMPCOMMAND;
 extern double RotationAngle;
+extern bool TakingInput;
 
 // Lander state - the visualization routines use velocity_from_positions, so not sensitive to 
 // any errors in the velocity update in numerical_dynamics
@@ -259,6 +265,7 @@ void draw_instrument_window (void);
 void display_help_arrows (void);
 void display_help_prompt (void);
 void display_help_text (void);
+void display_input_interface(void);
 void draw_orbital_window (void);
 void draw_parachute_quad (double d);
 void draw_parachute (double d);

@@ -867,13 +867,13 @@ void display_help_text (void)
 
   if (autopilot_enabled)
   {
-    glut_print(TEXTSTARTX, view_height-curYpos, "s - begin suicide landing" + to_string(RotationAngle)); curYpos += TEXTGAP;
+    glut_print(TEXTSTARTX, view_height-curYpos, "s - begin suicide landing"); curYpos += TEXTGAP;
     glut_print(TEXTSTARTX, view_height-curYpos, "p - begin proportional landing"); curYpos += TEXTGAP;
     glut_print(TEXTSTARTX, view_height-curYpos, "o - efficiently circularise current orbit from apogee"); curYpos += TEXTGAP;
   }
   else
   {
-    glut_print(TEXTSTARTX, view_height-curYpos, "s - toggle attitude stabilizer"+ to_string(RotationAngle)); curYpos += TEXTGAP;
+    glut_print(TEXTSTARTX, view_height-curYpos, "s - toggle attitude stabilizer"); curYpos += TEXTGAP;
     glut_print(TEXTSTARTX, view_height-curYpos, "p - deploy parachute"); curYpos += TEXTGAP;
   }
   glut_print(TEXTSTARTX, view_height-curYpos, "r - refuel"); curYpos += TEXTGAP;
@@ -895,6 +895,53 @@ void display_help_text (void)
     else glut_print(20, view_height - curYpos - TEXTGAP*j, s.str());
     j++;
   }
+
+  glEnable(GL_LIGHTING);
+  glEnable(GL_DEPTH_TEST);
+  glMatrixMode(GL_PROJECTION);
+  glPopMatrix();
+  glMatrixMode(GL_MODELVIEW);
+  glPopMatrix();
+}
+
+void display_input_interface (void)
+{
+  int curXpos = TEXTSTARTX;
+
+  glColor3f(1.0, 1.0, 1.0);
+
+  glMatrixMode(GL_PROJECTION);
+  glPushMatrix();
+  glLoadIdentity();
+  glOrtho(0, view_width, 0, view_height, -1.0, 1.0); 
+  glMatrixMode(GL_MODELVIEW);
+  glPushMatrix();
+  glLoadIdentity();
+  glDisable(GL_LIGHTING);
+  glDisable(GL_DEPTH_TEST);
+  
+
+  glut_print(curXpos, TEXTSTARTY + NEWLINE, "New Apogee Alt: ");
+  glut_print(curXpos + 5, TEXTSTARTY, " .");
+  for (int i = 0; i < INPUTRESOLUTION; i++)
+  {
+    glut_print(curXpos, TEXTSTARTY, to_string(CustomOrbitInput[i]));
+    curXpos += 15;
+  }
+  glut_print(curXpos, TEXTSTARTY, "x10 " + to_string(CustomOrbitInput[INPUTRESOLUTION]));
+
+  curXpos += 90;
+  glut_print(curXpos, TEXTSTARTY + NEWLINE, "New Perigee Alt: ");
+  glut_print(curXpos + 5, TEXTSTARTY, " .");
+  for (int i = INPUTRESOLUTION + 1; i < 2 * INPUTRESOLUTION + 1; i++)
+  {
+    glut_print(curXpos, TEXTSTARTY, to_string(CustomOrbitInput[i]));
+    curXpos += 15;
+  }
+  glut_print(curXpos, TEXTSTARTY, "x10 " + to_string(CustomOrbitInput[2 * INPUTRESOLUTION + 1]));
+
+  curXpos += 30;
+  glut_print(TEXTSTARTX, TEXTSTARTY + NEWLINE * 2, "Press e to enter and input values, press x to cancel");
 
   glEnable(GL_LIGHTING);
   glEnable(GL_DEPTH_TEST);
@@ -1008,8 +1055,9 @@ void draw_orbital_window (void)
   glEnd();
   glEnable(GL_LIGHTING);
 
+  if (TakingInput) display_input_interface();
   // Help information
-  if (help) display_help_text();
+  else if (help) display_help_text();
 
   glutSwapBuffers();
 }
@@ -1924,33 +1972,75 @@ void glut_special (int key, int x, int y)
 {
   switch(key) {
   case GLUT_KEY_UP: // throttle up
-    if (!autopilot_enabled && !landed && (fuel>0.0)) {
-      throttle_control++;
-      if (throttle_control>THROTTLE_GRANULARITY) throttle_control = THROTTLE_GRANULARITY;
-      throttle = (double)throttle_control/THROTTLE_GRANULARITY;
+    if (TakingInput)
+    {
+      CustomOrbitInput[CurrentSelection]++;
+      if (CurrentSelection < INPUTRESOLUTION || (CurrentSelection > INPUTRESOLUTION + 1 && CurrentSelection < 2 * INPUTRESOLUTION + 1))
+      {
+        CustomOrbitInput[CurrentSelection] = min(9, CustomOrbitInput[CurrentSelection]);
+        CustomOrbitInput[CurrentSelection] = max(0, CustomOrbitInput[CurrentSelection]);
+      }
+    }
+    else
+    {
+      if (!autopilot_enabled && !landed && (fuel>0.0))
+      {
+        throttle_control++;
+        if (throttle_control>THROTTLE_GRANULARITY) throttle_control = THROTTLE_GRANULARITY;
+        throttle = (double)throttle_control/THROTTLE_GRANULARITY;
+      }
     }
     break;
   case GLUT_KEY_DOWN: // throttle down
-    if (!autopilot_enabled && !landed) {
-      throttle_control--;
-      if (throttle_control<0) throttle_control = 0;
-      throttle = (double)throttle_control/THROTTLE_GRANULARITY;
+    if (TakingInput)
+    {
+      CustomOrbitInput[CurrentSelection]--;
+      if (CurrentSelection < INPUTRESOLUTION || (CurrentSelection > INPUTRESOLUTION + 1 && CurrentSelection < 2 * INPUTRESOLUTION + 1))
+      {
+        CustomOrbitInput[CurrentSelection] = min(9, CustomOrbitInput[CurrentSelection]);
+        CustomOrbitInput[CurrentSelection] = max(0, CustomOrbitInput[CurrentSelection]);
+      }
+    }
+    else
+    {
+      if (!autopilot_enabled && !landed)
+      {
+        throttle_control--;
+        if (throttle_control<0) throttle_control = 0;
+        throttle = (double)throttle_control/THROTTLE_GRANULARITY;
+      }
     }
     break;
   case GLUT_KEY_RIGHT: // faster simulation
-    simulation_speed++;
-    if (simulation_speed>10) simulation_speed = 10;
-    if (paused) {
-      if (!landed) glutIdleFunc(update_lander_state);
-      paused = false;
+    if (TakingInput)
+    {
+      CurrentSelection = min((int)(sizeof(CustomOrbitInput)/sizeof(int)) - 1, CurrentSelection + 1);
+    }
+    else
+    {
+      simulation_speed++;
+      if (simulation_speed>10) simulation_speed = 10;
+      if (paused)
+      {
+        if (!landed) glutIdleFunc(update_lander_state);
+        paused = false;
+      }
     }
     break;
   case GLUT_KEY_LEFT: // slower simulation
-    simulation_speed--;
-    if (simulation_speed<0) simulation_speed = 0;
-    if (!simulation_speed) {
-      glutIdleFunc(NULL);
-      paused = true;
+    if (TakingInput)
+    {
+      CurrentSelection = max(0, CurrentSelection - 1);
+    }
+    else
+    {
+      simulation_speed--;
+      if (simulation_speed<0) simulation_speed = 0;
+      if (!simulation_speed) 
+      {
+        glutIdleFunc(NULL);
+        paused = true;
+      }
     }
     break;
   }
@@ -2082,7 +2172,39 @@ void glut_key (unsigned char k, int x, int y)
 
   case 'c': case 'C':
     done &= !ORBITCHANGECALCDONE;
-    if (autopilot_enabled && !landed) AUTO_NEXT = CUSTOMORBIT;
+    if (autopilot_enabled && !landed)
+    {
+      TakingInput = true;
+      AUTO_NEXT = CUSTOMORBIT;
+    }
+    break;
+  
+  case 'e': case 'E':
+    if (AUTO_NEXT == CUSTOMORBIT)
+    {
+      InputApogee = 0.0;
+      InputPerigee = 0.0;
+      for (int i = 0; i < INPUTRESOLUTION; i++)
+      {
+        InputApogee += CustomOrbitInput[i] * pow(10.0, CustomOrbitInput[INPUTRESOLUTION] - i);
+      }
+      for (int i = INPUTRESOLUTION + 1; i < 2 * INPUTRESOLUTION + 1; i++)
+      {
+        InputApogee += CustomOrbitInput[i] * pow(10.0, CustomOrbitInput[2 * INPUTRESOLUTION + 1] - i);
+      }
+      InputApogee += MARS_RADIUS;
+      InputPerigee += MARS_RADIUS;
+      TakingInput = false;
+    }
+    break;
+  
+  case 'x': case 'X':
+    if (AUTO_NEXT = CUSTOMORBIT)
+    {
+      TakingInput = false;
+      AUTO_NEXT = DONOTHING;
+    }
+    break;
 
   case 'r': case 'R':
     fuel = 1.0;
