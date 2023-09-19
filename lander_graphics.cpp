@@ -923,8 +923,8 @@ void display_help_text (void)
   glDisable(GL_LIGHTING);
   glDisable(GL_DEPTH_TEST);
 
-  glut_print(TEXTSTARTX, view_height-curYpos, "Left arrow - decrease simulation speed"); curYpos += TEXTGAP;
-  glut_print(TEXTSTARTX, view_height-curYpos, "Right arrow - increase simulation speed"); curYpos += TEXTGAP;
+
+  glut_print(TEXTSTARTX, view_height-curYpos, "Left/Right arrows - change simulation speed"); curYpos += TEXTGAP;
   glut_print(TEXTSTARTX, view_height-curYpos, "Space - single step through simulation"); curYpos += NEWLINE;
 
   if (!autopilot_enabled)
@@ -933,12 +933,6 @@ void display_help_text (void)
     glut_print(TEXTSTARTX, view_height-curYpos, "U and J - Rotate craft in plane of orbit"); curYpos += TEXTGAP;
     glut_print(TEXTSTARTX, view_height-curYpos, "Down arrow - less thrust"); curYpos += NEWLINE;
   }
-
-  glut_print(TEXTSTARTX, view_height-curYpos, "Keys 0-9 - restart simulation in scenario n"); curYpos += NEWLINE;
-
-  glut_print(TEXTSTARTX, view_height-curYpos, "Left mouse - rotate 3D views"); curYpos += TEXTGAP;
-  glut_print(TEXTSTARTX, view_height-curYpos, "Middle/shift mouse or up wheel - zoom in 3D views"); curYpos += TEXTGAP;
-  glut_print(TEXTSTARTX, view_height-curYpos, "Right mouse or down wheel - zoom out 3D views"); curYpos += NEWLINE;
 
   if (autopilot_enabled)
   {
@@ -954,7 +948,8 @@ void display_help_text (void)
   glut_print(TEXTSTARTX, view_height-curYpos, "r - refuel"); curYpos += TEXTGAP;
   glut_print(TEXTSTARTX, view_height-curYpos, "a - toggle autopilot"); curYpos += NEWLINE;
 
-  glut_print(TEXTSTARTX, view_height-curYpos, "m - toggle moon selection"); curYpos += TEXTGAP;
+  glut_print(TEXTSTARTX, view_height-curYpos, "I and K - change moon distance"); curYpos += TEXTGAP;
+  glut_print(TEXTSTARTX, view_height-curYpos, "m - select moon"); curYpos += TEXTGAP;
   glut_print(TEXTSTARTX, view_height-curYpos, "l - toggle lighting model"); curYpos += TEXTGAP;
   glut_print(TEXTSTARTX, view_height-curYpos, "t - toggle terrain texture"); curYpos += TEXTGAP;
   glut_print(TEXTSTARTX, view_height-curYpos, "h - toggle help"); curYpos += TEXTGAP;
@@ -1143,11 +1138,14 @@ void draw_orbital_window (void)
   glLineWidth(1.0);
   glBegin(GL_LINE_STRIP);
   glColor3f(0.0, 1.0, 1.0);
-  glVertex3d(MoonPos.x, MoonPos.y, MoonPos.z);
-  j = (track_moon.p+N_TRACK-1)%N_TRACK;
-  for (i=0; i<track_moon.n; i++) {
-    glColor4f(0.0, 0.75*(N_TRACK-i)/N_TRACK, 0.75*(N_TRACK-i)/N_TRACK, 1.0*(N_TRACK-i)/N_TRACK);
-    glVertex3d(track_moon.pos[j].x, track_moon.pos[j].y, track_moon.pos[j].z); 
+
+  // draws a track for the moon
+  double ThetaNought = atan2(MoonPos.y, MoonPos.x);
+  for (i=0; i<3600; i++)
+  {
+    double angle = ThetaNought - 2 * M_PI * i / 3600;
+    glColor4f(0.8, 0.8*(3600-i)/3600, 0.6*(3600-i)/3600, 1.0*(3600-i)/3600);
+    glVertex3d(MoonDistance * cos(angle), MoonDistance * sin(angle), 0.0); 
     j = (j+N_TRACK-1)%N_TRACK;
   }
   glEnd();
@@ -1826,9 +1824,6 @@ void update_visualization (void)
     track.p++; if (track.p == N_TRACK) track.p = 0;
     last_track_position = position;
   }
-  track_moon.pos[track_moon.p] = MoonPos;
-  track_moon.n++; if (track_moon.n > N_TRACK) track_moon.n = N_TRACK;
-  track_moon.p++; if (track_moon.p == N_TRACK) track_moon.p = 0;
 
   // Redraw everything
   refresh_all_subwindows();
@@ -1974,8 +1969,6 @@ void reset_simulation (void)
   simulation_time = 0.0;  
   track.n = 0;
   track.p = 0;
-  track_moon.n = 0;
-  track_moon.p = 0;
   parachute_lost = false;
   closeup_coords.initialized = false;
   closeup_coords.backwards = false;
@@ -2145,8 +2138,8 @@ void closeup_mouse_motion (int x, int y)
 
   closeup_xr += y - last_click_y;
   closeup_yr += x - last_click_x;
-  if (closeup_xr < 0.0) closeup_xr = 0.0;
-  if (closeup_xr > 90.0) closeup_xr = 90.0;
+  if (closeup_xr < -105.0) closeup_xr = -105.0;
+  if (closeup_xr > 105.0) closeup_xr = 105.0;
   last_click_y = y;
   last_click_x = x;
   if (paused || landed) refresh_all_subwindows();
@@ -2393,6 +2386,19 @@ void glut_key (unsigned char k, int x, int y)
 
   case 'r': case 'R':
     fuel = 1.0;
+    break;
+
+  case 'i': case 'I':
+    MoonDistTemp = MoonDistance;
+    MoonDistance *= 1.1;
+    if (MoonDistTemp < MoonDistInitial && MoonDistTemp >= 1.0/1.1 * MoonDistInitial) { MoonDistance = MoonDistInitial; }
+    break;
+
+  case 'k': case 'K':
+    MoonDistTemp = MoonDistance;
+    MoonDistance *= 1.0/1.1;
+    if (MoonDistTemp > MoonDistInitial && MoonDistTemp <= 1.1 * MoonDistInitial) { MoonDistance = MoonDistInitial; }
+    break;
 
   case 'u': case 'U':
     if (!autopilot_enabled && !landed)

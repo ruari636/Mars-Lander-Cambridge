@@ -30,6 +30,8 @@ double InputApogee;
 double InputPerigee;
 bool TakingInput;
 bool MoonGravityEnabled;
+double MoonDistance;
+double MoonDistInitial = 15 * MARS_RADIUS;
 
 void autopilot (void)
 {
@@ -76,7 +78,7 @@ void numerical_dynamics (void)
   // This is the function that performs the numerical integration to update the
   // lander's pose. The time step is delta_t (global variable).
 {
-  MoonPos = {-MOONDISTANCE * sin(MOONOMEGA * simulation_time), MOONDISTANCE * cos(MOONOMEGA * simulation_time), 0.0};
+  MoonPos = {-MoonDistance * sin(MOONOMEGA * simulation_time), MoonDistance * cos(MOONOMEGA * simulation_time), 0.0};
   MoonRelPos = MoonPos - position;  
 
   FGrav = -position.norm() * ((MARS_MASS * LANDERMASS * GRAVITY) / (position.abs2()));
@@ -125,6 +127,7 @@ void initialize_simulation (void)
   TakingInput = false;
   CurrentSelection = 0;
   MoonGravityEnabled = true;
+  double MoonDistInitial = 15 * MARS_RADIUS;
   // The parameters to set are:
   // position - in Cartesian planetary coordinate system (m)
   // velocity - in Cartesian planetary coordinate system (m/s)
@@ -153,6 +156,7 @@ void initialize_simulation (void)
     parachute_status = NOT_DEPLOYED;
     stabilized_attitude = false;
     autopilot_enabled = false;
+    MoonDistInitial = 9400000;
     break;
 
   case 1:
@@ -232,4 +236,5 @@ void initialize_simulation (void)
   }
   Lowest_Height = position.abs();
   Greatest_Height = position.abs();
+  MoonDistance = MoonDistInitial;
 }

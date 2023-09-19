@@ -88,8 +88,7 @@
 
 #define MOONRADIUSRATIO 0.27
 #define MOONMASS MARS_MASS * MOONRADIUSRATIO * MOONRADIUSRATIO * MOONRADIUSRATIO * 0.5
-#define MOONDISTANCE 15 * MARS_RADIUS
-#define MOONOMEGA sqrt(MARS_MASS * GRAVITY / (pow(MOONDISTANCE, 3.0)))
+#define MOONOMEGA sqrt(MARS_MASS * GRAVITY / (pow(MoonDistance, 3.0)))
 
 using namespace std;
 
@@ -174,6 +173,7 @@ extern double InputPerigee;
 extern vector3d MoonPos;
 extern vector3d MoonRelPos;
 extern bool MoonGravityEnabled;
+extern double MoonDistInitial;
 
 //********************************************************************//
 
@@ -186,7 +186,6 @@ GLuint terrain_texture;
 GLuint moon_terrain_texture;
 short throttle_control;
 track_t track;
-track_t track_moon;
 bool texture_available;
 
 // Simulation parameters
@@ -212,6 +211,8 @@ extern COPILOT_ACTION AUTO_NEXT;
 extern COPILOT_ACTION TEMPCOMMAND;
 extern double RotationAngle;
 extern bool TakingInput;
+extern double MoonDistance;
+double MoonDistTemp;
 
 // Lander state - the visualization routines use velocity_from_positions, so not sensitive to 
 // any errors in the velocity update in numerical_dynamics
