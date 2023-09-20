@@ -216,7 +216,7 @@ double MoonDistTemp;
 double MoonAltitude;
 extern vector3d FGravMars;
 extern vector3d FGravMoon;
-bool MarsSphereOfInfluence;
+bool MarsSphereOfInfluence = true;
 bool MoonSelected = false;
 bool MoonSelectedAuto = false;
 

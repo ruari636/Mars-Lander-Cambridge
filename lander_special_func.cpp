@@ -6,7 +6,7 @@ extern vector3d FDragLander;
 extern vector3d FDragChute;
 extern double climb_speed;
 
-bool Heights_Updated = false;
+bool HeightsUpdated = false;
 double Greatest_Height = 0.0;
 double Lowest_Height = DBL_MAX;
 bool Orbit_Change_Burn = false;
@@ -18,79 +18,19 @@ bool descending;
 double avgLanderMassInBurn;
 double DragEstimate;
 double ForceEstimate;
-int iterations = 0;
-int dir;
 
-void initialize_special_func()
+void InitialiseSpecialFunc()
 {
     ClearHeights();
-    iterations = 0;
     done = 0;
     SuicideBurnStarted = false;
     Orbit_Change_Burn = false;
-    Heights_Updated = false;
+    HeightsUpdated = false;
     previous_descending = false;
     descending = false; 
     VelDescent = 0.5;
     Planned_Fuel_Left = fuel;
     avgLanderMassInBurn = LANDERMASS;
-}
-
-void OrbitChangeBurner()
-{
-    if (Orbit_Change_Burn)
-    {
-        if (Planned_Fuel_Left < fuel)
-        {
-            throttle = 1.0;
-        }
-        else
-        {
-            Orbit_Change_Burn = false;
-            ClearHeights(); // New orbit, new heights
-            throttle = 0.0;
-        }
-    }
-}
-
-double calculateNewVApogee(double Apogee, double NewPerigee)
-{
-    return sqrt(GRAVITY * MARS_MASS * (2 * NewPerigee) / 
-                        (Apogee * (NewPerigee + Apogee)));
-}
-
-double calculateNewVPerigee(double Perigee, double NewApogee)
-{
-    return sqrt(GRAVITY * MARS_MASS * (2 * NewApogee) / 
-                        (Perigee * (NewApogee + Perigee)));
-}
-
-double rocketEquationForFuel(double deltaV)
-{
-    // ln(m1/m2) * Vout = deltaV
-    // exp(deltaV/Vout) = m1/m2
-    // deltaM = fuelToBurn = m1(exp(-deltaV/Vout) - 1)
-    // m1 = LANDERMASS, m2 = LANDERMASS - fuelNeeded
-    // maxFuelForce / maxFuelBurnRate = impulsePerLitre
-    // impulseNeeded / impulsePerLitre = fuelNeeded
-    // thrust = dm/dt * Vout, Vout = maxThrust / fuelRateAtMaxThrust (kg/s)
-    double Vout = MAX_THRUST / (FUEL_RATE_AT_MAX_THRUST * FUEL_DENSITY);
-    double deltaM = LANDERMASS / exp(deltaV/Vout) - LANDERMASS;
-    return deltaM; // We want to know how much fuel to burn
-}
-
-double calculateFuelBurnedForNewPerigee(double Apogee, double Perigee, double NewPerigee)
-{
-    double v1 = calculateNewVApogee(Apogee, Perigee);
-    double v2 = calculateNewVApogee(Apogee, NewPerigee);
-    return rocketEquationForFuel(v2 - v1);
-}
-
-double calculateFuelBurnedForNewApogee(double Apogee, double Perigee, double NewApogee)
-{
-    double v1 = calculateNewVPerigee(Perigee, Apogee);
-    double v2 = calculateNewVPerigee(Perigee, NewApogee);
-    return rocketEquationForFuel(v2 - v1);
 }
 
 void FaceDirection(vector3d dir)
@@ -163,24 +103,6 @@ void ThrustProportionalToUnsafeVel()
     throttle = (TooFast == true) ? min((Thrust_Desired), 1.0):0.0;
 }
 
-void PlanDeorbitIfInPermanentOrbit()
-{
-    if (Heights_Updated) // This means we are in a permanent orbit as
-                       // otherwise perigee and apogee wouldn't have been measured
-    {
-        // Put us into a landing orbit
-        double NewPerigee = EXOSPHERE * 0.6 + MARS_RADIUS; // To use drag to slow us down
-        if (position.abs() > Greatest_Height * 0.99)
-        {
-            double fuelToBurn = calculateFuelBurnedForNewPerigee(Greatest_Height, 
-                                                                Lowest_Height, NewPerigee);
-            Planned_Fuel_Left = fuel - (fuelToBurn / (FUEL_CAPACITY * FUEL_DENSITY));
-            Orbit_Change_Burn = Planned_Fuel_Left > 0.0;
-            ClearHeights();
-        }
-    }
-}
-
 void AutoDeployParachuteWhenReady()
 {
     if ( safe_to_deploy_parachute() && 0.5 + Kh * MarsAltitude < MAX_PARACHUTE_SPEED && MarsAltitude < 20000 )
@@ -204,7 +126,7 @@ void UpdateHeights()
         done |= LOWESTHEIGHTMEASUREDMASK;
         if (!WithinError(Lowest_Height, position.abs()))
         {
-            Heights_Updated = false;
+            HeightsUpdated = false;
             done &= !LOWESTHEIGHTMEASUREDMASK;
         }
    }
@@ -214,20 +136,20 @@ void UpdateHeights()
         done |= GREATESTHEIGHTMEASUREDMASK;
         if (!WithinError(Greatest_Height, position.abs()))
         {
-            Heights_Updated = false;
+            HeightsUpdated = false;
             done &= !GREATESTHEIGHTMEASUREDMASK;
         }
    }
    if (done & (LOWESTHEIGHTMEASUREDMASK + GREATESTHEIGHTMEASUREDMASK) == (LOWESTHEIGHTMEASUREDMASK + GREATESTHEIGHTMEASUREDMASK))
    {
-        Heights_Updated = true;
+        HeightsUpdated = true;
    }
 }
 
 void ClearHeights()
 {
     done &= !(LOWESTHEIGHTMEASUREDMASK + GREATESTHEIGHTMEASUREDMASK);
-    Heights_Updated = false;
+    HeightsUpdated = false;
     Greatest_Height = 0.0;
     Lowest_Height = DBL_MAX;
 }
@@ -266,9 +188,7 @@ bool UpdateSuicideBurn()
 }
 
 void LandSuicide()
-{
-    Deorbit();
-    
+{    
     if (!Orbit_Change_Burn)
     {
         if (SuicideBurnStarted)
@@ -282,85 +202,6 @@ void LandSuicide()
 
 void LandProportional()
 {
-    Deorbit();
     AutoDeployParachuteWhenReady();
     if (!Orbit_Change_Burn) ThrustProportionalToUnsafeVel();
-}
-
-void Deorbit()
-{
-    PlanDeorbitIfInPermanentOrbit(); // Sets Orbit_Change_Burn to true if a deorbit
-                                    // is possible with remaining fuel
-    OrbitChangeBurner();
-}
-
-void ChangeApogee(double NextApogee)
-{
-    if (position.abs() <= Lowest_Height * 1.001 && (done & NEXTAPOGEEMET) == 0)
-    {
-        if ((done & ORBITCHANGECALCDONE) == 0)
-        {
-            double fuelToBurn = calculateFuelBurnedForNewApogee(Greatest_Height, Lowest_Height, NextApogee);
-            Planned_Fuel_Left = fuel - (abs(fuelToBurn) / (FUEL_CAPACITY * FUEL_DENSITY));
-            done |= ORBITCHANGECALCDONE;
-            dir = 1 - 2 * signbit(fuelToBurn);
-        }
-        Orbit_Change_Burn = Planned_Fuel_Left > 0.0;
-        FaceDirection(velocity.norm() * dir);
-        OrbitChangeBurner();
-        if (fuel <= Planned_Fuel_Left)
-        {
-            ClearHeights();
-            done &= !ORBITCHANGECALCDONE;
-            done |= NEXTAPOGEEMET;
-        }
-    }
-}
-
-void ChangePerigee(double NextPerigee)
-{
-    if (position.abs() >= Greatest_Height * 0.999) // Only run the burner when we are very close to apogee
-    {
-        if ((done & ORBITCHANGECALCDONE) == 0)
-        {
-            double fuelToBurn = calculateFuelBurnedForNewPerigee(Greatest_Height, // set to negative as we are burning in direction of travel
-                                                            Lowest_Height, NextPerigee);
-            Planned_Fuel_Left = fuel - (abs(fuelToBurn) / (FUEL_CAPACITY * FUEL_DENSITY));
-            done |= ORBITCHANGECALCDONE;
-            dir = 1 - 2 * signbit(fuelToBurn);
-            iterations++;
-        }
-        Orbit_Change_Burn = Planned_Fuel_Left > 0.0;
-        FaceDirection(velocity.norm() * dir);
-        OrbitChangeBurner();
-        if (fuel <= Planned_Fuel_Left)
-        {
-            ClearHeights();
-            done &= !ORBITCHANGECALCDONE;
-            done |= NEXTPERIGEEMET;
-        }
-    }
-}
-
-void CirculariseCurrentOrbit()
-{
-    if (Heights_Updated && (Greatest_Height - Lowest_Height) / Greatest_Height > 0.01) // We have collected current data on Apogee and Perigee and the height difference is outside of error margin
-    {
-        ChangePerigee(Greatest_Height); // Burns near Apogee to raise Perigee to be roughly equal
-    }
-}
-
-void MoveToOrbitInPlane(double NextApogee, double NextPerigee)
-{
-    if (Heights_Updated)
-    {
-        if ((done & NEXTAPOGEEMET) == 0)
-        {
-            ChangeApogee(NextApogee);
-        }
-        else
-        {
-            ChangePerigee(NextPerigee);
-        }
-    }
 }

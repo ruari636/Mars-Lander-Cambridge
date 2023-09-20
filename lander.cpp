@@ -13,6 +13,7 @@
 // ahg@eng.cam.ac.uk and gc121@eng.cam.ac.uk.
 
 #include "lander_special_func.h"
+#include "orbit_transfers.h"
 #include "lander.h"
 vector3d positionNMinus1;
 using namespace std;
@@ -43,14 +44,17 @@ void autopilot (void)
     {
       case (PROPORTIONALLANDING):
         FaceDirection(velocity.norm());
+        Deorbit();
         LandProportional();
         break;
       case (SUICIDELANDING):
         FaceDirection(velocity.norm());
+        Deorbit();
         LandSuicide();
         break;
       case (CIRCULARISEORBIT): // Does the most efficient orbit circularisation by raising perigee from apogee
         FaceDirection(-velocity.norm());
+        Deorbit();
         CirculariseCurrentOrbit();
         break;
       case (CUSTOMORBIT):
@@ -123,7 +127,8 @@ void numerical_dynamics (void)
 void initialize_simulation (void)
   // Lander pose initialization - selects one of 10 possible scenarios
 {
-  initialize_special_func();
+  InitialiseSpecialFunc();
+  InitialiseOrbitTransfers();
   AUTO_NEXT = DONOTHING;
   RotationAngle = 0.0;
   TakingInput = false;

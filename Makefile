@@ -4,15 +4,13 @@ PLATFORM = `uname`
 
 all:	lander spring
 
-lander: lander.o lander_graphics.o lander_special_func.o
-	@if [ ${PLATFORM} = "Linux" ]; \
-	then $(CC) -o lander lander.o lander_graphics.o lander_special_func.o ${CCSW} -lGL -lGLU -lglut; \
-	echo Linking for Linux; \
-	elif [ ${PLATFORM} = "Darwin" ]; \
-	then $(CC) -o lander lander.o lander_graphics.o ${CCSW} -framework GLUT -framework OpenGL; \
-	echo Linking for Mac OS X; \
-	else $(CC) -o lander lander.o lander_graphics.o ${CCSW} -lglut32 -lglu32 -lopengl32; \
-	echo Linking for Cygwin; \
+lander: lander.o lander_graphics.o lander_special_func.o orbit_transfers.o
+	@if [ "${PLATFORM}" = "Linux" ]; \
+	then \
+		$(CC) -o lander lander.o lander_graphics.o lander_special_func.o orbit_transfers.o ${CCSW} -lGL -lGLU -lglut; \
+		echo Linking for Linux; \
+	else \
+		echo "Unable to make outside of Linux"; \
 	fi
 
 lander_graphics.o lander.o: lander.h
