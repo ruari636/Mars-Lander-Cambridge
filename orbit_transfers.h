@@ -9,7 +9,7 @@
 #define MOONAPROACHBURNFINISHED 0x0020
 #define MOONESCAPEPREVENTED 0x0040
 
-#define MOONAPROACHAPOGEE (MoonDistance + MOONRADIUS + EXOSPHERE)
+#define MOONAPROACHAPOGEE (MoonDistance + 5 * MOONRADIUS)
 
 extern bool MoonApproachStarted;
 
@@ -34,6 +34,8 @@ void Deorbit();
 void CirculariseCurrentOrbit();
 
 void MoveToOrbitInPlane(double NextApogee, double NextPerigee);
+
+double CalculateAngleXY(const vector3d& A, const vector3d& B, const vector3d& C);
 
 void ApproachMoon();
 

@@ -76,8 +76,7 @@
 
 #define DECLARE_GLOBAL_VARIABLES
 #define GLUMASSIVEDISTSCALER 100
-#include "lander.h"
-#include "lander_special_func.h"
+#include "all.h"
 
 void invert (double m[], double mout[])
   // Inverts a 4x4 OpenGL rotation matrix
@@ -1189,7 +1188,38 @@ void draw_orbital_window (void)
   if (TakingInput) display_input_interface();
   // Help information
   else if (help) display_help_text();
+  
+  // Debug information  
+  extern double CurAngle;
+  extern double AngleToStartBurn;
+  extern double FuelToBurn;
+  double AngFunc = CalculateAngleXY(position, vector3d(), MoonPos);
+  int curYpos = TEXTSTARTY;
 
+  glColor3f(1.0, 1.0, 1.0);
+
+  glMatrixMode(GL_PROJECTION);
+  glPushMatrix();
+  glLoadIdentity();
+  glOrtho(0, view_width, 0, view_height, -1.0, 1.0); 
+  glMatrixMode(GL_MODELVIEW);
+  glPushMatrix();
+  glLoadIdentity();
+  glDisable(GL_LIGHTING);
+  glDisable(GL_DEPTH_TEST);
+
+  glut_print(TEXTSTARTX, view_height-curYpos, "CurAngle - " + to_string(CurAngle)); curYpos += TEXTGAP;
+  glut_print(TEXTSTARTX, view_height-curYpos, "AngleToStartBurn - " + to_string(AngleToStartBurn)); curYpos += TEXTGAP;
+  glut_print(TEXTSTARTX, view_height-curYpos, "Angle Function - " + to_string(AngFunc)); curYpos += TEXTGAP;
+  glut_print(TEXTSTARTX, view_height-curYpos, "Fuel to Burn - " + to_string(FuelToBurn)); curYpos += TEXTGAP;
+  
+  glEnable(GL_LIGHTING);
+  glEnable(GL_DEPTH_TEST);
+  glMatrixMode(GL_PROJECTION);
+  glPopMatrix();
+  glMatrixMode(GL_MODELVIEW);
+  glPopMatrix();
+  // end of debug information
   glutSwapBuffers();
 }
 
@@ -2417,6 +2447,10 @@ void glut_key (unsigned char k, int x, int y)
       InputPerigee += MARS_RADIUS;
       TakingInput = false;
     }
+    break;
+
+  case 'g': case 'G':
+    AUTO_NEXT = GOTOMOON;
     break;
   
   case 'x': case 'X':

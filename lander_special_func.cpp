@@ -1,5 +1,4 @@
 #include "lander_special_func.h"
-#include "lander.h"
 
 extern vector3d FGravMars;
 extern vector3d FDragLander;

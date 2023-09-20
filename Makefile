@@ -13,7 +13,7 @@ lander: lander.o lander_graphics.o lander_special_func.o orbit_transfers.o
 		echo "Unable to make outside of Linux"; \
 	fi
 
-lander_graphics.o lander.o: lander.h
+lander_graphics.o lander.o: lander.h lander_special_func.h orbit_transfers.h all.h
 
 spring: spring.o
 

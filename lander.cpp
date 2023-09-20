@@ -12,9 +12,7 @@
 // to receive any suggested modifications by private correspondence to
 // ahg@eng.cam.ac.uk and gc121@eng.cam.ac.uk.
 
-#include "lander_special_func.h"
-#include "orbit_transfers.h"
-#include "lander.h"
+#include "all.h"
 vector3d positionNMinus1;
 using namespace std;
 

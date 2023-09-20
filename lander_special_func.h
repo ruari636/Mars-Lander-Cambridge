@@ -1,8 +1,8 @@
-#include "lander.h"
-#include "float.h"
-
 #ifndef LANDER_SPECIAL_FUNC_H
 #define LANDER_SPECIAL_FUNC_H
+
+#include "all.h"
+#include "float.h"
 
 #define FUELMASS FUEL_DENSITY * fuel
 #define VELOCITYVERLET (1.0 / delta_t) * (position - positionNMinus1)
