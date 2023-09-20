@@ -9,7 +9,7 @@ extern double climb_speed;
 bool HeightsUpdated = false;
 double Greatest_Height = 0.0;
 double Lowest_Height = DBL_MAX;
-bool Orbit_Change_Burn = false;
+bool OrbitChangeBurn = false;
 double Planned_Fuel_Left = fuel;
 bool SuicideBurnStarted = false;
 double VelDescent;
@@ -24,7 +24,7 @@ void InitialiseSpecialFunc()
     ClearHeights();
     done = 0;
     SuicideBurnStarted = false;
-    Orbit_Change_Burn = false;
+    OrbitChangeBurn = false;
     HeightsUpdated = false;
     previous_descending = false;
     descending = false; 
@@ -189,7 +189,7 @@ bool UpdateSuicideBurn()
 
 void LandSuicide()
 {    
-    if (!Orbit_Change_Burn)
+    if (!OrbitChangeBurn)
     {
         if (SuicideBurnStarted)
         {
@@ -203,5 +203,5 @@ void LandSuicide()
 void LandProportional()
 {
     AutoDeployParachuteWhenReady();
-    if (!Orbit_Change_Burn) ThrustProportionalToUnsafeVel();
+    if (!OrbitChangeBurn) ThrustProportionalToUnsafeVel();
 }

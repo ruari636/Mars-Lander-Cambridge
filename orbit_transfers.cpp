@@ -1,7 +1,12 @@
 #include "orbit_transfers.h"
 extern bool HeightsUpdated;
+extern double MoonDistance;
+extern bool MarsSphereOfInfluence;
 int dir;
 int iterations = 0;
+double CircularOrbitVelocity;
+double MostImportantMass;
+bool MoonApproachStarted = false;
 
 void InitialiseOrbitTransfers()
 {
@@ -10,7 +15,7 @@ void InitialiseOrbitTransfers()
 
 void OrbitChangeBurner()
 {
-    if (Orbit_Change_Burn)
+    if (OrbitChangeBurn)
     {
         if (Planned_Fuel_Left < fuel)
         {
@@ -18,7 +23,7 @@ void OrbitChangeBurner()
         }
         else
         {
-            Orbit_Change_Burn = false;
+            OrbitChangeBurn = false;
             ClearHeights(); // New orbit, new heights
             throttle = 0.0;
         }
@@ -27,13 +32,13 @@ void OrbitChangeBurner()
 
 double calculateNewVApogee(double Apogee, double NewPerigee)
 {
-    return sqrt(GRAVITY * MARS_MASS * (2 * NewPerigee) / 
+    return sqrt(GRAVITY * MostImportantMass * (2 * NewPerigee) / 
                         (Apogee * (NewPerigee + Apogee)));
 }
 
 double calculateNewVPerigee(double Perigee, double NewApogee)
 {
-    return sqrt(GRAVITY * MARS_MASS * (2 * NewApogee) / 
+    return sqrt(GRAVITY * MostImportantMass * (2 * NewApogee) / 
                         (Perigee * (NewApogee + Perigee)));
 }
 
@@ -77,7 +82,7 @@ void PlanDeorbitIfInPermanentOrbit()
             double fuelToBurn = calculateFuelBurnedForNewPerigee(Greatest_Height, 
                                                                 Lowest_Height, NewPerigee);
             Planned_Fuel_Left = fuel - (fuelToBurn / (FUEL_CAPACITY * FUEL_DENSITY));
-            Orbit_Change_Burn = Planned_Fuel_Left > 0.0;
+            OrbitChangeBurn = Planned_Fuel_Left > 0.0;
             ClearHeights();
         }
     }
@@ -85,7 +90,7 @@ void PlanDeorbitIfInPermanentOrbit()
 
 void Deorbit()
 {
-    PlanDeorbitIfInPermanentOrbit(); // Sets Orbit_Change_Burn to true if a deorbit
+    PlanDeorbitIfInPermanentOrbit(); // Sets OrbitChangeBurn to true if a deorbit
                                     // is possible with remaining fuel
     OrbitChangeBurner();
 }
@@ -101,7 +106,7 @@ void ChangeApogee(double NextApogee)
             done |= ORBITCHANGECALCDONE;
             dir = 1 - 2 * signbit(fuelToBurn);
         }
-        Orbit_Change_Burn = Planned_Fuel_Left > 0.0;
+        OrbitChangeBurn = Planned_Fuel_Left > 0.0;
         FaceDirection(velocity.norm() * dir);
         OrbitChangeBurner();
         if (fuel <= Planned_Fuel_Left)
@@ -126,7 +131,7 @@ void ChangePerigee(double NextPerigee)
             dir = 1 - 2 * signbit(fuelToBurn);
             iterations++;
         }
-        Orbit_Change_Burn = Planned_Fuel_Left > 0.0;
+        OrbitChangeBurn = Planned_Fuel_Left > 0.0;
         FaceDirection(velocity.norm() * dir);
         OrbitChangeBurner();
         if (fuel <= Planned_Fuel_Left)
@@ -158,5 +163,73 @@ void MoveToOrbitInPlane(double NextApogee, double NextPerigee)
         {
             ChangePerigee(NextPerigee);
         }
+    }
+}
+
+double CalculateAngleXY(const vector3d& A, const vector3d& B, const vector3d& C) // finds the angle between AB and BC projected into the XY plane
+{
+    // Calculate vectors AB and BC
+    double AB_x = B.x - A.x;
+    double AB_y = B.y - A.y;
+    double BC_x = C.x - B.x;
+    double BC_y = C.y - B.y;
+
+    // Calculate the dot product of vectors AB and BC
+    double dotProduct = (AB_x * BC_x) + (AB_y * BC_y);
+
+    // Calculate the magnitudes of vectors AB and BC
+    double magnitudeAB = sqrt(AB_x * AB_x + AB_y * AB_y);
+    double magnitudeBC = sqrt(BC_x * BC_x + BC_y * BC_y);
+
+    // Calculate the cosine of the angle between vectors AB and BC using the dot product
+    double cosineTheta = dotProduct / (magnitudeAB * magnitudeBC);
+
+    // Calculate the angle in radians
+    double angleRadians = acos(cosineTheta);
+
+    return angleRadians;
+}
+
+double KeplerPeriod(double SemiMajorAxis)
+{
+    return 2 * M_PI * sqrt(pow(SemiMajorAxis, 3.0) * pow(GRAVITY * MostImportantMass, -1.0));
+}
+
+// @brief Entry conditions: circular orbit around Mars/Main body, velocity in this orbit measured, coplanar with moon
+void ApproachMoon()
+{
+    if (HeightsUpdated && !MoonApproachStarted)
+    {
+        double ApogeeHeight = MOONAPROACHAPOGEE;
+        double DeltaV = calculateNewVPerigee((Greatest_Height + Lowest_Height) / 2.0, ApogeeHeight);
+        double MaxJourneyTime = KeplerPeriod(ApogeeHeight / 2.0 + ((Greatest_Height + Lowest_Height) / 2.0) / 2.0) / 2.0;
+        double AngleToBurn = M_PI - MaxJourneyTime * MOONOMEGA; // Angle between lander and moon to place our perigee for the transfer
+        double CurAngle = CalculateAngleXY(position, vector3d(), MoonPos);
+        double FuelToBurn = rocketEquationForFuel(DeltaV);
+        double TimeToBurn = FuelToBurn / FUEL_RATE_AT_MAX_THRUST;
+        double AngleToStartBurn = AngleToBurn - TimeToBurn * CircularOrbitVelocity * 0.5 / ((Greatest_Height + Lowest_Height) / 2.0);
+        MoonApproachStarted = (CurAngle - AngleToStartBurn) < M_PI * 0.002; // when we are within 1/500 of a radian
+        if (MoonApproachStarted && FuelToBurn > fuel)
+        {
+            OrbitChangeBurn = true;
+            Planned_Fuel_Left = fuel - FuelToBurn;
+        }
+    }
+    if (MoonApproachStarted)
+    {
+        OrbitChangeBurner();
+    }
+}
+
+bool EscapePrevented = false;
+void PreventMoonEscape()
+{
+    if (!EscapePrevented)
+    {
+
+    }
+    else
+    {
+        done |= MOONESCAPEPREVENTED;
     }
 }

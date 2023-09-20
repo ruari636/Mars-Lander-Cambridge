@@ -157,8 +157,8 @@ enum COPILOT_ACTION
   SUICIDELANDING,
   CIRCULARISEORBIT,
   CUSTOMORBIT,
-  RECORDAPOGEE,
-  RECORDPERIGEE,
+  GOTOMOON,
+  BIIMPULSIVEMOONTRANSFER,
   DONOTHING
 };
 
@@ -175,6 +175,7 @@ extern vector3d MoonPos;
 extern vector3d MoonRelPos;
 extern bool MoonGravityEnabled;
 extern double MoonDistInitial;
+extern double MostImportantMass;
 
 //********************************************************************//
 
@@ -253,7 +254,7 @@ extern double MarsAltitude;
 extern double MoonAltitude;
 extern double Greatest_Height;
 extern double Lowest_Height;
-extern bool Orbit_Change_Burn;
+extern bool OrbitChangeBurn;
 extern double Planned_Fuel_Left;
 extern bool MarsSphereOfInfluence;
 

@@ -47,24 +47,44 @@ void autopilot (void)
         Deorbit();
         LandProportional();
         break;
+
       case (SUICIDELANDING):
         FaceDirection(velocity.norm());
         Deorbit();
         LandSuicide();
         break;
+
       case (CIRCULARISEORBIT): // Does the most efficient orbit circularisation by raising perigee from apogee
         FaceDirection(-velocity.norm());
-        Deorbit();
         CirculariseCurrentOrbit();
         break;
+
       case (CUSTOMORBIT):
         if (!TakingInput)
         {
           MoveToOrbitInPlane(InputApogee, InputPerigee); // Does a Hoffman transfer when data has been collected
         }
         break;
+
+      case (GOTOMOON):
+        ApproachMoon();
+        break;
+
+      case (BIIMPULSIVEMOONTRANSFER):
+        ApproachMoon();
+        if (MoonApproachStarted && (!OrbitChangeBurn || (done & MOONAPROACHBURNFINISHED) == MOONAPROACHBURNFINISHED))
+        {
+          done |= MOONAPROACHBURNFINISHED; // status of Orbit_ChangeBurn will change once we start burning in here, hence the done flag
+          if (MoonAltitude < (MOONRADIUS + EXOSPHERE) * 1.2 && !MarsSphereOfInfluence) // We are close and Moon gravity is stronger than Mars gravity
+          {
+            if ((done & MOONESCAPEPREVENTED) != MOONESCAPEPREVENTED) PreventMoonEscape(); // brings us into a reasonably stable moon orbit
+            else CirculariseCurrentOrbit(); // circularises it
+          }
+        }
+
       case (DONOTHING):
         break;
+
       default:
         break;
     }
@@ -92,6 +112,8 @@ void numerical_dynamics (void)
     FGravMoon = MoonRelPos.norm() * ((MOONMASS * LANDERMASS * GRAVITY) / (MoonRelPos.abs2()));;
   }
   MarsSphereOfInfluence = FGravMars.abs2() > FGravMoon.abs2();
+  MostImportantMass = MarsSphereOfInfluence ? MARS_MASS : MOONMASS;
+
   FDragLander = pow(LANDER_SIZE, 2) * DRAGCONSTANT(DRAG_COEF_LANDER) * VELCONSTANT;
   FDragChute = pow(LANDER_SIZE * 2, 2) * 5 * DRAGCONSTANT(DRAG_COEF_CHUTE) * VELCONSTANT;
   Thrust = thrust_wrt_world();
