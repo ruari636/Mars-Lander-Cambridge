@@ -1,7 +1,7 @@
 #include "lander_special_func.h"
 #include "lander.h"
 
-extern vector3d FGrav;
+extern vector3d FGravMars;
 extern vector3d FDragLander;
 extern vector3d FDragChute;
 extern double climb_speed;
@@ -156,8 +156,8 @@ void ClampVelocity(double clamp) // assuming down is positive
 void ThrustProportionalToUnsafeVel()
 {
     double velMinusDesiredVel;
-    if (altitude > HEIGHTTOLANDINGSPEED) { velMinusDesiredVel = VelDescent + Kh * altitude + velocity * position.norm(); }
-    else velMinusDesiredVel = 0.5 + Kh * altitude + velocity * position.norm();
+    if (MarsAltitude > HEIGHTTOLANDINGSPEED) { velMinusDesiredVel = VelDescent + Kh * MarsAltitude + velocity * position.norm(); }
+    else velMinusDesiredVel = 0.5 + Kh * MarsAltitude + velocity * position.norm();
     bool TooFast = velMinusDesiredVel < 0.0;
     double Thrust_Desired = -velMinusDesiredVel * Kp + (MARS_MASS * LANDERMASS * GRAVITY) / (position.abs2() * MAX_THRUST);
     throttle = (TooFast == true) ? min((Thrust_Desired), 1.0):0.0;
@@ -183,7 +183,7 @@ void PlanDeorbitIfInPermanentOrbit()
 
 void AutoDeployParachuteWhenReady()
 {
-    if ( safe_to_deploy_parachute() && 0.5 + Kh * altitude < MAX_PARACHUTE_SPEED && altitude < 20000 )
+    if ( safe_to_deploy_parachute() && 0.5 + Kh * MarsAltitude < MAX_PARACHUTE_SPEED && MarsAltitude < 20000 )
     {
         parachute_status = DEPLOYED;
     }
@@ -250,16 +250,16 @@ bool UpdateSuicideBurn()
 {
     if (velocity * position < -0.1)
     {
-        double KEMax = (MAX_THRUST - (MARS_MASS * LANDERMASS * GRAVITY) / (MARS_RADIUS * MARS_RADIUS)) * altitude; // Based on the work the lander can do against falling, neglecting drag and fuel usage reducing mass
+        double KEMax = (MAX_THRUST - (MARS_MASS * LANDERMASS * GRAVITY) / (MARS_RADIUS * MARS_RADIUS)) * MarsAltitude; // Based on the work the lander can do against falling, neglecting drag and fuel usage reducing mass
         double VMax = sqrt(2 * KEMax / LANDERMASS); // If the velocity is below this, we must be able to start a suicide burn and stop, as drag is neglected in the calculation of KE_MAX
         if (!SuicideBurnStarted)
         {
             avgLanderMassInBurn = LANDERMASS;
             double KE = 0.5 * LANDERMASS * velocity.abs2();
             IterativeSuicideBurnEstimator();
-            SuicideBurnStarted = (((ForceEstimate + DragEstimate) * altitude < KE) && altitude < MAXSUICIDEBURNCHECKHEIGHT); // At 5km the max vel we can stop is
+            SuicideBurnStarted = (((ForceEstimate + DragEstimate) * MarsAltitude < KE) && MarsAltitude < MAXSUICIDEBURNCHECKHEIGHT); // At 5km the max vel we can stop is
         }
-        else if (velocity.abs() < VMax && altitude > 5000.0) SuicideBurnStarted = false; // We entered the atmosphere so fast that suicide burn was triggered early
+        else if (velocity.abs() < VMax && MarsAltitude > 5000.0) SuicideBurnStarted = false; // We entered the atmosphere so fast that suicide burn was triggered early
     }
     if (SuicideBurnStarted) VelDescent = max(sqrt(2 * ((MAX_THRUST - (MARS_MASS * LANDERMASS * GRAVITY) / (MARS_RADIUS * MARS_RADIUS)) * HEIGHTTOLANDINGSPEED) / LANDERMASS) * 0.8, 0.5); 
     return SuicideBurnStarted;

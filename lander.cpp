@@ -67,7 +67,8 @@ void autopilot (void)
   }
 }
 
-vector3d FGrav;
+vector3d FGravMars;
+vector3d FGravMoon;
 vector3d FDragLander;
 vector3d FDragChute;
 vector3d Thrust;
@@ -81,15 +82,16 @@ void numerical_dynamics (void)
   MoonPos = {-MoonDistance * sin(MOONOMEGA * simulation_time), MoonDistance * cos(MOONOMEGA * simulation_time), 0.0};
   MoonRelPos = MoonPos - position;  
 
-  FGrav = -position.norm() * ((MARS_MASS * LANDERMASS * GRAVITY) / (position.abs2()));
+  FGravMars = -position.norm() * ((MARS_MASS * LANDERMASS * GRAVITY) / (position.abs2()));
   if (MoonGravityEnabled)
   {
-    FGrav += MoonRelPos.norm() * ((MOONMASS * LANDERMASS * GRAVITY) / (MoonRelPos.abs2()));;
+    FGravMoon = MoonRelPos.norm() * ((MOONMASS * LANDERMASS * GRAVITY) / (MoonRelPos.abs2()));;
   }
+  MarsSphereOfInfluence = FGravMars.abs2() > FGravMoon.abs2();
   FDragLander = pow(LANDER_SIZE, 2) * DRAGCONSTANT(DRAG_COEF_LANDER) * VELCONSTANT;
   FDragChute = pow(LANDER_SIZE * 2, 2) * 5 * DRAGCONSTANT(DRAG_COEF_CHUTE) * VELCONSTANT;
   Thrust = thrust_wrt_world();
-  acceleration = (FGrav + FDragLander + Thrust) / (double)LANDERMASS;
+  acceleration = (FGravMars + FGravMoon + FDragLander + Thrust) / (double)LANDERMASS;
   FaceDirection(VecAtAngleToPosInPlane(RotationAngle));
 
 #if defined(USEVERLET)
@@ -160,7 +162,7 @@ void initialize_simulation (void)
     break;
 
   case 1:
-    // a descent from rest at 10km altitude
+    // a descent from rest at 10km MarsAltitude
     position = vector3d(0.0, -(MARS_RADIUS + 10000.0), 0.0);
     velocity = vector3d(0.0, 0.0, 0.0);
     orientation = vector3d(0.0, 0.0, 90.0);

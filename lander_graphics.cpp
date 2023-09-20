@@ -759,7 +759,14 @@ void draw_instrument_window (void)
   glClear(GL_COLOR_BUFFER_BIT);
 
   // Draw altimeter
-  draw_dial (view_width+GAP-400, INSTRUMENT_HEIGHT/2, altitude, "altitude", "m");
+  if (MarsSphereOfInfluence)
+  {
+    draw_dial (view_width+GAP-400, INSTRUMENT_HEIGHT/2, MarsAltitude, "altitude", "m");
+  }
+  else
+  {
+    draw_dial (view_width+GAP-400, INSTRUMENT_HEIGHT/2, MoonAltitude, "Moon altitude", "m");
+  }
 
   // Draw auto-pilot lamp
   draw_indicator_lamp (view_width+GAP-400, INSTRUMENT_HEIGHT-18, "Auto-pilot off", "Auto-pilot on", autopilot_enabled);
@@ -831,7 +838,7 @@ void draw_instrument_window (void)
   if (!landed) s << ": " << scenario_description[scenario];
   glut_print(view_width+GAP-488, 17, s.str());
   if (landed) {
-    if (altitude < LANDER_SIZE/2.0) glut_print(80, 17, "Lander is below the surface!");
+    if (MarsAltitude < LANDER_SIZE/2.0) glut_print(80, 17, "Lander is below the surface!");
     else {
       s.str(""); s << "Fuel consumed " << fixed << FUEL_CAPACITY*(1.0-fuel) << " litres";
       glut_print(view_width+GAP-427, 17, s.str());
@@ -1069,7 +1076,11 @@ void draw_orbital_window (void)
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
-
+  if (!MarsSphereOfInfluence && !MoonSelectedAuto)
+  {
+    MoonSelectedAuto, MoonSelected = true; // Selects the moon when we leave the mars sphere of influence/enter the moons
+  }
+  MoonSelectedAuto = !MarsSphereOfInfluence; // This autoselection option resets after we re-enter the mars sphere of influence
   // Viewing transformation
   quat_to_matrix(m, orbital_quat);
   glMultMatrixd(m);
@@ -1342,15 +1353,29 @@ void update_closeup_coords (void)
 
 void draw_moon_closeup(double* m2)
 {
-  vector3d MoonRenderPos = MoonRelPos / GLUMASSIVEDISTSCALER;
-  glColor3f(1.0, 1.0, 1.0);
-  glPushMatrix();
-  glMultMatrixd(m2); // now in the planetary coordinate system
-  glTranslated(MoonRenderPos.x, MoonRenderPos.y, MoonRenderPos.z);
-  glRotated(360.0*simulation_time/MARS_DAY, 0.0, 0.0, 1.0); // to make the moon spin
-  glutMottledMoon(MARS_RADIUS * 0.3 / GLUMASSIVEDISTSCALER, 160, 100);
+  if (MoonAltitude > EXOSPHERE)
+  {
+    vector3d MoonRenderPos = MoonRelPos / GLUMASSIVEDISTSCALER;
+    glColor3f(1.0, 1.0, 1.0);
+    glPushMatrix();
+    glMultMatrixd(m2); // now in the planetary coordinate system
+    glTranslated(MoonRenderPos.x, MoonRenderPos.y, MoonRenderPos.z);
+    glRotated(360.0*simulation_time/MARS_DAY, 0.0, 0.0, 1.0); // to make the moon spin
+    glutMottledMoon(MOONRADIUS / GLUMASSIVEDISTSCALER, 160, 100);
 
-  glPopMatrix(); // back to the view's world coordinate system
+    glPopMatrix(); // back to the view's world coordinate system
+  }
+  else
+  {
+  glColor3f(1.0, 1.0, 1.0);
+    glPushMatrix();
+    glMultMatrixd(m2); // now in the planetary coordinate system
+    glTranslated(MoonRelPos.x, MoonRelPos.y, MoonRelPos.z);
+    glRotated(360.0*simulation_time/MARS_DAY, 0.0, 0.0, 1.0); // to make the moon spin
+    glutMottledMoon(MOONRADIUS, 160, 100); // Draw the actual size moon if we are close to it
+
+    glPopMatrix(); // back to the view's world coordinate system
+  }
 }
 
 void draw_closeup_window (void)
@@ -1385,28 +1410,28 @@ void draw_closeup_window (void)
   glClearColor(tmp*0.98, tmp*0.67, tmp*0.52, 0.0);
 
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  if (altitude < 0.0) { // just blank the screen if the lander is below the surface
+  if (MarsAltitude < 0.0 || MoonAltitude < 0.0) { // just blank the screen if the lander is below the surface
     glutSwapBuffers();
     return;
   }
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
 
-  // Set projection matrix and fog values based on altitude.
+  // Set projection matrix and fog values based on MarsAltitude.
   // Above the exosphere we see a long way and there is no fog.
   // Between the exosphere and transition_altitude, we see up to the horizon with increasing fog.
   // At transition_altitude we have a totally opaque haze, to disguise the transition from spherical surface to flat surface.
   // Below transition_altitude, we can see as far as the horizon (or transition_altitude with no terrain texture), 
   // with the fog decreasing towards touchdown.
-  if (altitude > EXOSPHERE) gluPerspective(CLOSEUP_VIEW_ANGLE, aspect_ratio, 1.0, closeup_offset + 2.0*MARS_RADIUS);
+  if (MarsAltitude > EXOSPHERE) gluPerspective(CLOSEUP_VIEW_ANGLE, aspect_ratio, 1.0, closeup_offset + 2.0*MARS_RADIUS);
   else {
     horizon = sqrt(position.abs2() - MARS_RADIUS*MARS_RADIUS);
-    if (altitude > transition_altitude) {
-      f = (altitude-transition_altitude) / (EXOSPHERE-transition_altitude);
+    if (MarsAltitude > transition_altitude) {
+      f = (MarsAltitude-transition_altitude) / (EXOSPHERE-transition_altitude);
       if (f < SMALL_NUM) fog_density = 1000.0; else fog_density = (1.0-f) / (f*horizon);
       view_depth = closeup_offset + horizon;
     } else {
-      f = 1.0 - (altitude / transition_altitude);
+      f = 1.0 - (MarsAltitude / transition_altitude);
       if (f < SMALL_NUM) fog_density = 1000.0; else fog_density = (1.0-f) / (f*transition_altitude);
       if (do_texture) {
 	fog_density = 0.00005 + 0.5*fog_density;
@@ -1483,7 +1508,7 @@ void draw_closeup_window (void)
   // Surface colour
   glColor3f(0.63, 0.33, 0.22);
 
-  if (altitude < transition_altitude) {
+  if (MarsAltitude < transition_altitude) {
 
     // Draw ground plane below the lander's current position - we need to do this in quarters, with a vertex
     // nearby, to get the fog calculations correct in all OpenGL implementations.
@@ -1493,22 +1518,22 @@ void draw_closeup_window (void)
     glPushMatrix();
     glRotated(terrain_angle, 0.0, 1.0, 0.0);
     glBegin(GL_QUADS);
-    glTexCoord2f(1.0 + terrain_offset_x, 1.0 + terrain_offset_y); glVertex3d(ground_plane_size, -altitude, ground_plane_size);      
-    glTexCoord2f(1.0 + terrain_offset_x, 0.5 + terrain_offset_y); glVertex3d(ground_plane_size, -altitude, 0.0);
-    glTexCoord2f(0.5 + terrain_offset_x, 0.5 + terrain_offset_y); glVertex3d(0.0, -altitude, 0.0);      
-    glTexCoord2f(0.5 + terrain_offset_x, 1.0 + terrain_offset_y); glVertex3d(0.0, -altitude, ground_plane_size);
-    glTexCoord2f(0.5 + terrain_offset_x, 0.5 + terrain_offset_y); glVertex3d(0.0, -altitude, 0.0);      
-    glTexCoord2f(1.0 + terrain_offset_x, 0.5 + terrain_offset_y); glVertex3d(ground_plane_size, -altitude, 0.0);
-    glTexCoord2f(1.0 + terrain_offset_x, 0.0 + terrain_offset_y); glVertex3d(ground_plane_size, -altitude, -ground_plane_size);
-    glTexCoord2f(0.5 + terrain_offset_x, 0.0 + terrain_offset_y); glVertex3d(0.0, -altitude, -ground_plane_size);
-    glTexCoord2f(0.5 + terrain_offset_x, 0.5 + terrain_offset_y); glVertex3d(0.0, -altitude, 0.0);      
-    glTexCoord2f(0.5 + terrain_offset_x, 0.0 + terrain_offset_y); glVertex3d(0.0, -altitude, -ground_plane_size);
-    glTexCoord2f(0.0 + terrain_offset_x, 0.0 + terrain_offset_y); glVertex3d(-ground_plane_size, -altitude, -ground_plane_size);
-    glTexCoord2f(0.0 + terrain_offset_x, 0.5 + terrain_offset_y); glVertex3d(-ground_plane_size, -altitude, 0.0);
-    glTexCoord2f(0.5 + terrain_offset_x, 1.0 + terrain_offset_y); glVertex3d(0.0, -altitude, ground_plane_size);
-    glTexCoord2f(0.5 + terrain_offset_x, 0.5 + terrain_offset_y); glVertex3d(0.0, -altitude, 0.0);      
-    glTexCoord2f(0.0 + terrain_offset_x, 0.5 + terrain_offset_y); glVertex3d(-ground_plane_size, -altitude, 0.0);
-    glTexCoord2f(0.0 + terrain_offset_x, 1.0 + terrain_offset_y); glVertex3d(-ground_plane_size, -altitude, ground_plane_size);
+    glTexCoord2f(1.0 + terrain_offset_x, 1.0 + terrain_offset_y); glVertex3d(ground_plane_size, -MarsAltitude, ground_plane_size);      
+    glTexCoord2f(1.0 + terrain_offset_x, 0.5 + terrain_offset_y); glVertex3d(ground_plane_size, -MarsAltitude, 0.0);
+    glTexCoord2f(0.5 + terrain_offset_x, 0.5 + terrain_offset_y); glVertex3d(0.0, -MarsAltitude, 0.0);      
+    glTexCoord2f(0.5 + terrain_offset_x, 1.0 + terrain_offset_y); glVertex3d(0.0, -MarsAltitude, ground_plane_size);
+    glTexCoord2f(0.5 + terrain_offset_x, 0.5 + terrain_offset_y); glVertex3d(0.0, -MarsAltitude, 0.0);      
+    glTexCoord2f(1.0 + terrain_offset_x, 0.5 + terrain_offset_y); glVertex3d(ground_plane_size, -MarsAltitude, 0.0);
+    glTexCoord2f(1.0 + terrain_offset_x, 0.0 + terrain_offset_y); glVertex3d(ground_plane_size, -MarsAltitude, -ground_plane_size);
+    glTexCoord2f(0.5 + terrain_offset_x, 0.0 + terrain_offset_y); glVertex3d(0.0, -MarsAltitude, -ground_plane_size);
+    glTexCoord2f(0.5 + terrain_offset_x, 0.5 + terrain_offset_y); glVertex3d(0.0, -MarsAltitude, 0.0);      
+    glTexCoord2f(0.5 + terrain_offset_x, 0.0 + terrain_offset_y); glVertex3d(0.0, -MarsAltitude, -ground_plane_size);
+    glTexCoord2f(0.0 + terrain_offset_x, 0.0 + terrain_offset_y); glVertex3d(-ground_plane_size, -MarsAltitude, -ground_plane_size);
+    glTexCoord2f(0.0 + terrain_offset_x, 0.5 + terrain_offset_y); glVertex3d(-ground_plane_size, -MarsAltitude, 0.0);
+    glTexCoord2f(0.5 + terrain_offset_x, 1.0 + terrain_offset_y); glVertex3d(0.0, -MarsAltitude, ground_plane_size);
+    glTexCoord2f(0.5 + terrain_offset_x, 0.5 + terrain_offset_y); glVertex3d(0.0, -MarsAltitude, 0.0);      
+    glTexCoord2f(0.0 + terrain_offset_x, 0.5 + terrain_offset_y); glVertex3d(-ground_plane_size, -MarsAltitude, 0.0);
+    glTexCoord2f(0.0 + terrain_offset_x, 1.0 + terrain_offset_y); glVertex3d(-ground_plane_size, -MarsAltitude, ground_plane_size);
     glEnd();
     glPopMatrix();
     glDisable(GL_TEXTURE_2D);
@@ -1522,16 +1547,16 @@ void draw_closeup_window (void)
       else tmp = ground_line_offset + transition_altitude;
       while ((closeup_coords.backwards ? -tmp : tmp) > -transition_altitude) {
 	// Fade the lines out towards the horizon, to avoid aliasing artefacts. The fade is a function of distance from the
-	// centre (tmp) and altitude: the lower the lander gets, the more pronounced the fade.
+	// centre (tmp) and MarsAltitude: the lower the lander gets, the more pronounced the fade.
 	// We need to do draw each line in two parts, with a vertex nearby, to get the fog calculations correct in all OpenGL implementations.
 	// To make the lines fade more strongly when landed, decrease the second number.
-	// To make the lines less apparent at high altitude, decrease the first number. 
-	f = exp( -fabs( pow((transition_altitude-altitude) / transition_altitude, 10.0) * tmp / (10.0*GROUND_LINE_SPACING)) );
+	// To make the lines less apparent at high MarsAltitude, decrease the first number. 
+	f = exp( -fabs( pow((transition_altitude-MarsAltitude) / transition_altitude, 10.0) * tmp / (10.0*GROUND_LINE_SPACING)) );
 	glColor4f(0.32, 0.17, 0.11, f);
-	glVertex3d(tmp, -altitude, -transition_altitude);
-	glVertex3d(tmp, -altitude, 0.0);
-	glVertex3d(tmp, -altitude, 0.0);
-	glVertex3d(tmp, -altitude, transition_altitude);
+	glVertex3d(tmp, -MarsAltitude, -transition_altitude);
+	glVertex3d(tmp, -MarsAltitude, 0.0);
+	glVertex3d(tmp, -MarsAltitude, 0.0);
+	glVertex3d(tmp, -MarsAltitude, transition_altitude);
 	if (closeup_coords.backwards) tmp += GROUND_LINE_SPACING;
 	else tmp -= GROUND_LINE_SPACING;
       }
@@ -1543,9 +1568,9 @@ void draw_closeup_window (void)
       glColor3f(0.32, 0.17, 0.11);
       glBegin(GL_TRIANGLES);
       for (i=0; i<360; i+=10) {
-	glVertex3d(0.0, -altitude, 0.0);
-	glVertex3d(LANDER_SIZE*cos(M_PI*(i+10)/180.0), -altitude, LANDER_SIZE*sin(M_PI*(i+10)/180.0));
-	glVertex3d(LANDER_SIZE*cos(M_PI*i/180.0), -altitude, LANDER_SIZE*sin(M_PI*i/180.0));
+	glVertex3d(0.0, -MarsAltitude, 0.0);
+	glVertex3d(LANDER_SIZE*cos(M_PI*(i+10)/180.0), -MarsAltitude, LANDER_SIZE*sin(M_PI*(i+10)/180.0));
+	glVertex3d(LANDER_SIZE*cos(M_PI*i/180.0), -MarsAltitude, LANDER_SIZE*sin(M_PI*i/180.0));
       }
       glEnd();
     } else {
@@ -1557,9 +1582,9 @@ void draw_closeup_window (void)
 	cx = 40.0 * (rand_tri[0] - 0.5);
 	cy = 40.0 * (rand_tri[1] - 0.5);
 	glNormal3d(0.0, 1.0, 0.0);
-	glVertex3d(cx + 2.0*LANDER_SIZE*rand_tri[2], -altitude, cy + 2.0*LANDER_SIZE*rand_tri[3]);
-	glVertex3d(cx + 2.0*LANDER_SIZE*rand_tri[4], -altitude, cy + 2.0*LANDER_SIZE*rand_tri[5]);
-	glVertex3d(cx + 2.0*LANDER_SIZE*rand_tri[6], -altitude, cy + 2.0*LANDER_SIZE*rand_tri[7]);
+	glVertex3d(cx + 2.0*LANDER_SIZE*rand_tri[2], -MarsAltitude, cy + 2.0*LANDER_SIZE*rand_tri[3]);
+	glVertex3d(cx + 2.0*LANDER_SIZE*rand_tri[4], -MarsAltitude, cy + 2.0*LANDER_SIZE*rand_tri[5]);
+	glVertex3d(cx + 2.0*LANDER_SIZE*rand_tri[6], -MarsAltitude, cy + 2.0*LANDER_SIZE*rand_tri[7]);
       }
       glEnd();
       if (parachute_status != LOST) {
@@ -1570,9 +1595,9 @@ void draw_closeup_window (void)
 	  cx = 40.0 * (rand_tri[0] - 0.5);
 	  cy = 40.0 * (rand_tri[1] - 0.5);
 	  glNormal3d(0.0, 1.0, 0.0);
-	  glVertex3d(cx + 2.0*LANDER_SIZE*rand_tri[2], -altitude, cy + 2.0*LANDER_SIZE*rand_tri[3]);
-	  glVertex3d(cx + 2.0*LANDER_SIZE*rand_tri[4], -altitude, cy + 2.0*LANDER_SIZE*rand_tri[5]);
-	  glVertex3d(cx + 2.0*LANDER_SIZE*rand_tri[6], -altitude, cy + 2.0*LANDER_SIZE*rand_tri[7]);
+	  glVertex3d(cx + 2.0*LANDER_SIZE*rand_tri[2], -MarsAltitude, cy + 2.0*LANDER_SIZE*rand_tri[3]);
+	  glVertex3d(cx + 2.0*LANDER_SIZE*rand_tri[4], -MarsAltitude, cy + 2.0*LANDER_SIZE*rand_tri[5]);
+	  glVertex3d(cx + 2.0*LANDER_SIZE*rand_tri[6], -MarsAltitude, cy + 2.0*LANDER_SIZE*rand_tri[7]);
 	}
 	glEnd();
       }
@@ -1586,7 +1611,7 @@ void draw_closeup_window (void)
     glDisable(GL_DEPTH_TEST);
     glPushMatrix();
 
-    if (altitude > EXOSPHERE) {
+    if (MarsAltitude > EXOSPHERE) {
 
       // Draw the planet reduced size at a reduced displacement, to avoid numerical OpenGL problems with huge viewing distances.
       //glTranslated(0.0, -MARS_RADIUS, 0.0);
@@ -1599,7 +1624,7 @@ void draw_closeup_window (void)
     } else {
 
       // Draw the planet actual size at the correct displacement
-      glTranslated(0.0, -(MARS_RADIUS + altitude), 0.0);
+      glTranslated(0.0, -(MARS_RADIUS + MarsAltitude), 0.0);
       glMultMatrixd(m2); // now in the planetary coordinate system
       glRotated(360.0*simulation_time/MARS_DAY, 0.0, 0.0, 1.0); // to make the planet spin
       glutMottledSphere(MARS_RADIUS, 160, 100);
@@ -1758,14 +1783,14 @@ bool safe_to_deploy_parachute (void)
 
   // Assume high Reynolds number, quadratic drag = -0.5 * rho * v^2 * A * C_d
   drag = 0.5*DRAG_COEF_CHUTE*atmospheric_density(position)*5.0*2.0*LANDER_SIZE*2.0*LANDER_SIZE*velocity_from_positions.abs2();
-  // Do not use the global variable "altitude" here, in case this function is called from within the
-  // numerical_dynamics function, before altitude is updated in the update_visualization function
+  // Do not use the global variable "MarsAltitude" here, in case this function is called from within the
+  // numerical_dynamics function, before MarsAltitude is updated in the update_visualization function
   if ((drag > MAX_PARACHUTE_DRAG) || ((velocity_from_positions.abs() > MAX_PARACHUTE_SPEED) && ((position.abs() - MARS_RADIUS) < EXOSPHERE))) return false;
   else return true;
 }
 
 void update_visualization (void)
-  // The visualization part of the idle function. Re-estimates altitude, velocity, climb speed and ground
+  // The visualization part of the idle function. Re-estimates MarsAltitude, velocity, climb speed and ground
   // speed from current and previous positions. Updates throttle and fuel levels, then redraws all subwindows.
 {
   static vector3d last_track_position;
@@ -1773,7 +1798,8 @@ void update_visualization (void)
   double a, b, c, mu;
 
   simulation_time += delta_t;
-  altitude = position.abs() - MARS_RADIUS;
+  MarsAltitude = position.abs() - MARS_RADIUS;
+  MoonAltitude = MoonRelPos.abs() - MOONRADIUS;
 
   // Use average of current and previous positions when calculating climb and ground speeds
   av_p = (position + last_position).norm();
@@ -1783,7 +1809,7 @@ void update_visualization (void)
   ground_speed = (velocity_from_positions - climb_speed*av_p).abs();
 
   // Check to see whether the lander has landed
-  if (altitude < LANDER_SIZE/2.0) {
+  if (MarsAltitude < LANDER_SIZE/2.0) {
     glutIdleFunc(NULL);
     // Estimate position and time of impact
     d = position - last_position;
@@ -1793,7 +1819,23 @@ void update_visualization (void)
     mu = (-b - sqrt(b*b-4.0*a*c))/(2.0*a);
     position = last_position + mu*d;
     simulation_time -= (1.0-mu)*delta_t; 
-    altitude = LANDER_SIZE/2.0;
+    MarsAltitude = LANDER_SIZE/2.0;
+    landed = true;
+    if ((fabs(climb_speed) > MAX_IMPACT_DESCENT_RATE) || (fabs(ground_speed) > MAX_IMPACT_GROUND_SPEED)) crashed = true;
+    velocity_from_positions = vector3d(0.0, 0.0, 0.0);
+  }
+
+  if (MoonAltitude < LANDER_SIZE/2.0) {
+    glutIdleFunc(NULL);
+    // Estimate position and time of impact
+    d = position - last_position;
+    a = d.abs2();
+    b = 2.0*last_position*d;
+    c = last_position.abs2() - (MARS_RADIUS + LANDER_SIZE/2.0) * (MARS_RADIUS + LANDER_SIZE/2.0);
+    mu = (-b - sqrt(b*b-4.0*a*c))/(2.0*a);
+    position = last_position + mu*d;
+    simulation_time -= (1.0-mu)*delta_t; 
+    MoonAltitude = LANDER_SIZE/2.0;
     landed = true;
     if ((fabs(climb_speed) > MAX_IMPACT_DESCENT_RATE) || (fabs(ground_speed) > MAX_IMPACT_GROUND_SPEED)) crashed = true;
     velocity_from_positions = vector3d(0.0, 0.0, 0.0);
@@ -1944,13 +1986,14 @@ void reset_simulation (void)
 
   // Restore initial lander state
   MoonSelected = false;
+  MoonSelectedAuto = false;
   initialize_simulation();
 
   // Check whether the lander is underground - if so, make sure it doesn't move anywhere
   landed = false;
   crashed = false;
-  altitude = position.abs() - MARS_RADIUS;
-  if (altitude < LANDER_SIZE/2.0) {
+  MarsAltitude = position.abs() - MARS_RADIUS;
+  if (MarsAltitude < LANDER_SIZE/2.0) {
     glutIdleFunc(NULL);
     landed = true;
     velocity = vector3d(0.0, 0.0, 0.0);

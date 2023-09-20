@@ -87,6 +87,7 @@
 #define MAX_IMPACT_DESCENT_RATE 1.0 // (m/s)
 
 #define MOONRADIUSRATIO 0.27
+#define MOONRADIUS MARS_RADIUS * MOONRADIUSRATIO
 #define MOONMASS MARS_MASS * MOONRADIUSRATIO * MOONRADIUSRATIO * MOONRADIUSRATIO * 0.5
 #define MOONOMEGA sqrt(MARS_MASS * GRAVITY / (pow(MoonDistance, 3.0)))
 
@@ -206,18 +207,23 @@ bool do_texture = true;
 unsigned long throttle_buffer_length, throttle_buffer_pointer;
 double *throttle_buffer = NULL;
 unsigned long long time_program_started;
-bool MoonSelected = false;
 extern COPILOT_ACTION AUTO_NEXT;
 extern COPILOT_ACTION TEMPCOMMAND;
 extern double RotationAngle;
 extern bool TakingInput;
 extern double MoonDistance;
 double MoonDistTemp;
+double MoonAltitude;
+extern vector3d FGravMars;
+extern vector3d FGravMoon;
+bool MarsSphereOfInfluence;
+bool MoonSelected = false;
+bool MoonSelectedAuto = false;
 
 // Lander state - the visualization routines use velocity_from_positions, so not sensitive to 
 // any errors in the velocity update in numerical_dynamics
 vector3d position, orientation, velocity, velocity_from_positions, last_position;
-double climb_speed, ground_speed, altitude, throttle, fuel;
+double climb_speed, ground_speed, MarsAltitude, throttle, fuel;
 bool stabilized_attitude, autopilot_enabled, parachute_lost;
 parachute_status_t parachute_status;
 int stabilized_attitude_angle;
@@ -243,11 +249,13 @@ extern vector3d position, orientation, velocity;
 extern parachute_status_t parachute_status;
 extern int stabilized_attitude_angle;
 
-extern double altitude;
+extern double MarsAltitude;
+extern double MoonAltitude;
 extern double Greatest_Height;
 extern double Lowest_Height;
 extern bool Orbit_Change_Burn;
 extern double Planned_Fuel_Left;
+extern bool MarsSphereOfInfluence;
 
 #endif
 
