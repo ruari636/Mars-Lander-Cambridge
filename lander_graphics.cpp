@@ -906,10 +906,6 @@ void display_help_arrows (void)
   glEnable(GL_LIGHTING);
 }
 
-#define TEXTSTARTX 20
-#define TEXTSTARTY 20
-#define TEXTGAP 15
-#define NEWLINE 20
 void display_help_text (void)
   // Displays help information in orbital view window
 {
@@ -1188,38 +1184,8 @@ void draw_orbital_window (void)
   if (TakingInput) display_input_interface();
   // Help information
   else if (help) display_help_text();
+  else HelperInfoDrawer(HelpfulInformation(AUTO_NEXT));
   
-  // Debug information  
-  extern double CurAngle;
-  extern double AngleToStartBurn;
-  extern double FuelToBurn;
-  double AngFunc = CalculateAngleXY(position, vector3d(), MoonPos);
-  int curYpos = TEXTSTARTY;
-
-  glColor3f(1.0, 1.0, 1.0);
-
-  glMatrixMode(GL_PROJECTION);
-  glPushMatrix();
-  glLoadIdentity();
-  glOrtho(0, view_width, 0, view_height, -1.0, 1.0); 
-  glMatrixMode(GL_MODELVIEW);
-  glPushMatrix();
-  glLoadIdentity();
-  glDisable(GL_LIGHTING);
-  glDisable(GL_DEPTH_TEST);
-
-  glut_print(TEXTSTARTX, view_height-curYpos, "CurAngle - " + to_string(CurAngle)); curYpos += TEXTGAP;
-  glut_print(TEXTSTARTX, view_height-curYpos, "AngleToStartBurn - " + to_string(AngleToStartBurn)); curYpos += TEXTGAP;
-  glut_print(TEXTSTARTX, view_height-curYpos, "Angle Function - " + to_string(AngFunc)); curYpos += TEXTGAP;
-  glut_print(TEXTSTARTX, view_height-curYpos, "Fuel to Burn - " + to_string(FuelToBurn)); curYpos += TEXTGAP;
-  
-  glEnable(GL_LIGHTING);
-  glEnable(GL_DEPTH_TEST);
-  glMatrixMode(GL_PROJECTION);
-  glPopMatrix();
-  glMatrixMode(GL_MODELVIEW);
-  glPopMatrix();
-  // end of debug information
   glutSwapBuffers();
 }
 

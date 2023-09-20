@@ -196,7 +196,7 @@ void ApproachMoon()
         double ApogeeHeight = MOONAPROACHAPOGEE;
         FuelToBurn = calculateFuelBurnedForNewApogee((Greatest_Height + Lowest_Height) / 2.0, (Greatest_Height + Lowest_Height) / 2.0, ApogeeHeight) / (FUEL_CAPACITY * FUEL_DENSITY);
         double JourneyTime = KeplerPeriod(ApogeeHeight / 2.0 + ((Greatest_Height + Lowest_Height) / 2.0) / 2.0) / 2.0;
-        // Account for Gravitational acceleration by moon by multiplying MaxJourneyTime by < 1.0
+        // TODO: Account for Gravitational acceleration by moon by multiplying MaxJourneyTime by < 1.0
         double AngleToBurn = M_PI - JourneyTime * MOONOMEGA; // Angle between lander and moon to place our perigee for the transfer
         AngleToBurn += (MOONRADIUS) / (MoonDistance * 2 * M_PI); // Account for radius in case moon is close to planet
         while (AngleToBurn < 0) {
