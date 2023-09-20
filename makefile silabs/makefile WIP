@@ -1,0 +1,35 @@
+CC = g++
+CCSW = -O3 -Wno-deprecated-declarations
+PLATFORM = `uname`
+SRC_LOCATION := source
+INC_LOCATION := include
+OBJ_LOCATION := outputs
+
+LANDER_SRC_FILES := $(shell find $(SRC_LOCATION) -name "*.cpp")
+LANDER_INC_FILES := $(shell find $(SRC_LOCATION) -name "*.h")
+
+all:	lander spring
+
+lander: $(LANDER_OBJ_FILES)
+	@if [ "${PLATFORM}" = "Linux" ]; \
+	then \
+		$(CC) -o lander $(LANDER_OBJ_FILES) ${CCSW} -lGL -lGLU -lglut; \
+		echo Linking for Linux; \
+	else \
+		echo "Unable to make outside of Linux"; \
+	fi
+
+#lander_graphics.o lander.o: lander.h lander_special_func.h orbit_transfers.h helper_info.h all.h
+
+spring: spring.o
+
+$(OBJ_LOCATION)/%.o: $(SRC_LOCATION)/%.cpp  # Rule for creating object files
+	$(CC) ${CCSW} -c $< -o $@
+
+.cpp.o:
+	$(CC) ${CCSW} -c $<
+
+clean:
+	echo cleaning up; /bin/rm -f core *.o lander spring
+
+.PHONY: all clean  # Declare targets as phony to ensure they are always executed

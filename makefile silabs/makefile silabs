@@ -1,0 +1,658 @@
+#####################################################################################################
+#				Expected Passed Parameters
+#####################################################################################################
+# recipe_echo : whether recipes should be echoed or not : 0=quiet(default);1=echo on 
+# hw_target : build for specific h/w target : 
+# TESLA_DV (default) : 1 
+# SILABS_BGM220P_EXPLORER : 2 (deprecated)
+# SALIERI : 3
+# KENDALL : 4
+# debug : 0=NoDebug(default); 1=Debug (No sleep of the Silabs), allows Segger RTT i/f to operate
+# lfrc : 0=use LF crystal(default); non-0=use internal rc oscillator
+# auto_schedule : 0=no periodic measurements; 1=periodic measurements reported via BLE(default)
+# spi_diag : 0=no access to extra spi commands(default); 1=access to extra spi commands
+# lfforceon : 0=LF crystal used on-demand(default); non-0=LF crystal forced on permanently (useful for crystal characterisation)
+# motion : 0=Motion not enabled; 1=Motion enabled (default)
+# cal_spec : build for specific cal spec : 
+# CAL_SPEC_M (default) : 1 
+# CAL_SPEC_R : 2
+# no_reflash : 0=Perform re-flash of Gen7 if versions differ (default); 1=Do not perform re-flash
+# rtt : 0=use UART for CLI (default); 1=use RTT for CLI
+# dfu_full_access : 0=Minimal Access; 1=Full Access (default)
+# accel_reading : 0=Do NOT auto-schedule accelerometer readings; 1=Schedule accelorometer readings (default)
+
+# Optional environment variables
+# SILABS_TOOLCHAIN_LOC e.g. "c:\SiliconLabs\SimplicityStudio\v5\developer\toolchains\gnu_arm\10.2_2020q4\bin"
+# GECKO_SDK_LOCATION e.g. "c:/Users/x3074036/SimplicityStudio/SDKs/gecko_sdk"
+# SILABS_USB_SN e.g. "440199194" 
+# JLINK_EXE e.g. "C:\Program Files (x86)\SEGGER\JLink\JLink"
+# PYTHON3_EXE e.g. "C:\SVN_source\Tools\_loaf\Python/3.7.4.1\bin 
+ifndef recipe_echo
+   recipe_echo := 0
+endif
+
+ifndef hw_target
+   hw_target := TESLA_DV
+endif
+
+ifeq ($(hw_target), TESLA_DV)
+   TARGET_BOARD := 1
+   PART_NUMBER := EFR32BG22C224F512IM40
+   PART_INCLUDE :=/platform/Device/SiliconLabs/EFR32BG22/Include
+   STARTUP_C := /platform/Device/SiliconLabs/EFR32BG22/Source/GCC/startup_efr32bg22.c
+   SYSTEM_C := /platform/Device/SiliconLabs/EFR32BG22/Source/system_efr32bg22.c
+   STREAMS_ENABLED := 0
+   ifndef rtt
+      rtt := 1
+   endif
+else ifeq ($(hw_target), SALIERI)
+   TARGET_BOARD := 3
+   PART_NUMBER := BGM220PC22HNA
+   PART_INCLUDE := /platform/Device/SiliconLabs/BGM22/Include
+   STARTUP_C := /platform/Device/SiliconLabs/BGM22/Source/GCC/startup_bgm22.c
+   SYSTEM_C := /platform/Device/SiliconLabs/BGM22/Source/system_bgm22.c
+   STREAMS_ENABLED := 1
+   ifndef rtt
+      rtt := 0
+   endif
+else ifeq ($(hw_target), KENDALL)
+   TARGET_BOARD := 4
+   PART_NUMBER := BGM220PC22HNA
+   PART_INCLUDE := /platform/Device/SiliconLabs/BGM22/Include
+   STARTUP_C := /platform/Device/SiliconLabs/BGM22/Source/GCC/startup_bgm22.c
+   SYSTEM_C := /platform/Device/SiliconLabs/BGM22/Source/system_bgm22.c
+   STREAMS_ENABLED := 0
+   ifndef rtt
+      rtt := 1
+   endif
+else
+unrecognised hw_target specified   
+endif
+
+ifndef debug
+   debug := 0
+endif
+
+# Ensure that NDEBUG is defined for non-debug builds, but undefined for debug builds
+ifeq ($(debug), 0)
+   DEBUG_SETTING := -D NDEBUG
+   DEBUG_FLDR := /release
+else
+   DEBUG_SETTING := -U NDEBUG
+   DEBUG_FLDR := /debug
+   STREAMS_ENABLED := 1
+endif  
+
+ifndef lfrc
+   lfrc := 0
+endif
+ifeq ($(lfrc), 0)
+   # value of 0 stipulates external crystal as source for LF
+   LF_OSC_SETTING := -D LF_OSC_CLK_SRC=0   
+else
+   # value of 1 stipulates internal RC oscillator as source for LF
+   LF_OSC_SETTING := -D LF_OSC_CLK_SRC=1   
+endif 
+
+
+ifndef lfforceon
+   lfforceon := 0
+endif
+ifeq ($(lfforceon), 0)
+   # value of 0 stipulates that the LF crystal is enabled automatically on-demand
+   LF_FORCE_ON_SETTING := -D LF_FORCE_ON=0   
+else
+   # value of 1 stipulates internal RC oscillator as source for LF
+   LF_FORCE_ON_SETTING := -D LF_FORCE_ON=1   
+endif 
+
+
+ifndef auto_schedule
+    auto_schedule = 1
+endif
+ifeq ($(auto_schedule), 1)
+    AUTO_SCHEDULE_SETTING := -D SENSOR_AUTO_SCHEDULE=1
+else
+    AUTO_SCHEDULE_SETTING := -D SENSOR_AUTO_SCHEDULE=0
+endif
+
+ifndef accel_reading
+    accel_reading = 1
+endif
+ifeq ($(accel_reading), 1)
+    PERIODIC_ACCEL_SETTING := -D SENSOR_ACCEL_SCHEDULE=1
+else
+    PERIODIC_ACCEL_SETTING := -D SENSOR_ACCEL_SCHEDULE=0
+endif
+
+
+ifndef spi_diag
+    spi_diag = 0
+endif
+ifeq ($(spi_diag), 1)
+    SPI_DIAG_SETTING := -D SPI_CMD_DIAG_COMMANDS=1
+else
+    SPI_DIAG_SETTING := -D SPI_CMD_DIAG_COMMANDS=0
+endif
+
+ifeq ($(STREAMS_ENABLED), 0)
+    STREAM_SETTING := -D PRINTF_STREAM=0
+else
+    STREAM_SETTING := -D PRINTF_STREAM=1
+endif
+
+ifndef motion
+   motion := 1
+endif
+ifeq ($(motion), 0)
+   # value of 0 stipulates that Motion sensing is to be disabled
+   MOTION_SETTING := -D MOTION_ENABLED=0   
+else
+   # value of 1 stipulates that Motion sensing is to be enabled
+   MOTION_SETTING := -D MOTION_ENABLED=1   
+endif 
+
+ifndef cal_spec
+   cal_spec := CAL_SPEC_M
+endif
+
+ifndef no_reflash
+   no_reflash := 0
+endif
+
+ifeq ($(no_reflash), 0)
+   # value of 0 stipulates that re-flashing is enabled
+   REFLASH_SETTING := -D REFLASH_ENABLED=1
+else
+   # value of 1 stipulates that re-flashing is Disabled
+   REFLASH_SETTING := -D REFLASH_ENABLED=0
+endif 
+
+ifeq ($(rtt), 0)
+   # value of 0 stipulates that the CLI uses UART
+   CLI_SETTING := -D CLI_USE_RTT=0   
+else
+   # value of 1 stipulates that the CLI uses RTT (JLink) interface
+   CLI_SETTING := -D CLI_USE_RTT=1   
+endif 
+
+ifndef dfu_full_access
+   dfu_full_access := 1
+endif
+
+ifeq ($(dfu_full_access), 0)
+   # value of 0 stipulates that full access to API is disallowed
+   DFU_ACCESS_SETTING := -D DFU_FULL_ACCESS=0
+else
+   # value of 1 stipulates that full access to API is allowed
+   DFU_ACCESS_SETTING := -D DFU_FULL_ACCESS=1
+endif 
+
+
+
+##---------------------------------------------------------------------------------------------------------------------
+## use bash shell for shell commands
+##---------------------------------------------------------------------------------------------------------------------
+
+SHELL := /bin/bash
+
+# Determine the OS in use: Msys implies runnning in Windows environment; GNU/Linux = Linux 
+OSNAME := $(shell uname -o)
+
+ifeq ($(OSNAME), GNU/Linux)
+   ifndef GECKO_SDK_LOCATION
+      GECKO_SDK_LOCATION := /opt/silabs/gecko_sdk
+      # for later lib version - GECKO_SDK_LOCATION := /opt/silabs/gecko_sdk_4_1_3
+   endif
+   ifndef SILABS_TOOLCHAIN_LOC
+      # gcc_arm is a symlink set to point to latest gcc-arm toolchain version
+      # If a specific toolchain version is required then this must be explicitly set below
+      SILABS_TOOLCHAIN_LOC := /opt/gcc-arm/bin
+      SILABS_COMMANDER_LOC := /opt/SiliconLabs/commander
+   endif
+   ifndef PYTHON3_EXE
+      PYTHON3_EXE := /opt/python3/bin/python3
+   endif
+   ifndef JLINK_EXE
+      JLINK_EXE := JLinkExe
+   endif
+else
+   UNAME :=$(subst sso\,,$(shell whoami))
+   ifndef GECKO_SDK_LOCATION
+      GECKO_SDK_LOCATION := c:/Users/$(UNAME)/SimplicityStudio/SDKs/gecko_sdk
+      # for later lib version - GECKO_SDK_LOCATION := c:/Users/$(UNAME)/SimplicityStudio/SDKs/gecko_sdk_4_1_3
+   endif
+   ifndef SILABS_TOOLCHAIN_LOC
+      # SILABS_TOOLCHAIN_LOC := c:\SiliconLabs\SimplicityStudio\v5\developer\toolchains\gnu_arm\10.2_2020q4\bin
+      SILABS_TOOLCHAIN_LOC := c:\SiliconLabs\SimplicityStudio\v5\developer\toolchains\gnu_arm\10.3_2021.10\bin
+      SILABS_COMMANDER_LOC := c:/SiliconLabs/SimplicityStudio/v5/developer/adapter_packs/commander
+   endif
+   ifndef PYTHON3_EXE
+      PYTHON3_EXE := py
+   endif
+   ifndef JLINK_EXE
+      JLINK_EXE := "C:\Program Files (x86)\SEGGER\JLink\JLink"
+   endif
+endif
+
+
+# Modify PATH so that it includes the toolchain location
+export PATH := $(SILABS_TOOLCHAIN_LOC):$(PATH)
+
+ifndef SENSATA_LIB_LOCATION
+	SENSATA_LIB_LOCATION := ..
+endif
+   
+SRC_LOCATION := .
+
+OBJECT_DIR := $(hw_target)/$(cal_spec)$(DEBUG_FLDR)/objects
+OUTPUT_DIR := $(hw_target)/$(cal_spec)$(DEBUG_FLDR)/outputs
+
+RM := rm -rf
+
+TEMP_FILE := jlink_temp_file
+ifndef SILABS_USB_SN
+# Obtain the serial number of the JLink i/f to be used
+$(shell echo ShowEmuList > $(TEMP_FILE) && echo exit >> $(TEMP_FILE))
+$(shell $(JLINK_EXE) -CommanderScript $(TEMP_FILE) | grep "J-Link EnergyMicro" > jlink_dev_list.txt)
+SILABS_USB_SN := $(shell grep -o "[[:digit:]][[:digit:]][[:digit:]][[:digit:]][[:digit:]][[:digit:]][[:digit:]][[:digit:]][[:digit:]]" jlink_dev_list.txt )
+$(shell $(RM) $(TEMP_FILE))
+$(shell $(RM) jlink_dev_list.txt)
+endif
+
+##---------------------------------------------------------------------------------------------------------------------
+## $HeadURL: $
+## $Author: $
+## $Revision: $
+## $Date: $
+##---------------------------------------------------------------------------------------------------------------------
+
+##---------------------------------------------------------------------------------------------------------------------
+## reminder about makefiles
+##---------------------------------------------------------------------------------------------------------------------
+
+# A := XXX is evaluated once
+# A = XXX is evaluated whenever it is used (might be never, might be many times)
+
+
+##---------------------------------------------------------------------------------------------------------------------
+## Debian or CentOS
+##---------------------------------------------------------------------------------------------------------------------
+
+DISTRIBUTION = $(shell lsb_release -d | expand -t1 | cut -d" " -f2)
+
+##---------------------------------------------------------------------------------------------------------------------
+## Silabs ARM compiler
+##---------------------------------------------------------------------------------------------------------------------
+
+ifeq ($(recipe_echo), 0)
+   ECHO_ON = @
+endif   
+   
+ARM_GCC     := arm-none-eabi-gcc
+ARM_OBJDUMP := arm-none-eabi-objdump
+ARM_OBJCOPY := arm-none-eabi-objcopy
+ARM_NM      := arm-none-eabi-nm
+ARM_SIZE    := arm-none-eabi-size
+
+# Simplicity Commander is used to convert hex output to a Gecko Bootloader format (.GBL), suitable for OTA
+SILABS_GBL_CONVERT := $(SILABS_COMMANDER_LOC)/commander gbl create 
+
+ASM_FLAGS = \
+   -g3 \
+   -gdwarf-2 -mcpu=cortex-m33 -mthumb \
+   -mfpu=fpv5-sp-d16 -mfloat-abi=hard -imacrossl_gcc_preinclude.h \
+   -I"$(GECKO_SDK_LOCATION)/platform/common/toolchain/inc" \
+   -c -x assembler-with-cpp
+   
+ # '-DMBEDTLS_CONFIG_FILE=<mbedtls_config.h>' '-DMBEDTLS_PSA_CRYPTO_CONFIG_FILE=<psa_crypto_config.h>' 
+    
+C_FLAGS = \
+   -Wall -Wextra -Werror \
+   -gdwarf-2 -mcpu=cortex-m33 -mthumb -std=c99 \
+   $(DEBUG_SETTING) \
+   $(LF_OSC_SETTING) \
+   $(AUTO_SCHEDULE_SETTING) \
+   $(PERIODIC_ACCEL_SETTING) \
+   $(SPI_DIAG_SETTING) \
+   $(STREAM_SETTING) \
+   $(MOTION_SETTING) \
+   $(REFLASH_SETTING) \
+   $(CLI_SETTING) \
+   $(DFU_ACCESS_SETTING) \
+   -D $(PART_NUMBER)=1 \
+   -D SL_COMPONENT_CATALOG_PRESENT=1 \
+   -D SL_RAIL_LIB_MULTIPROTOCOL_SUPPORT=0 \
+   -D SLI_RADIOAES_REQUIRES_MASKING=1 \
+   -D MBEDTLS_CONFIG_FILE='<mbedtls_config.h>' \
+   -D MBEDTLS_PSA_CRYPTO_CONFIG_FILE='<psa_crypto_config.h>' \
+   -D SL_RAIL_UTIL_PA_CONFIG_HEADER='<sl_rail_util_pa_config.h>' \
+   -D TARGET_BOARD=$(TARGET_BOARD) \
+   -Os -fno-builtin -ffunction-sections -fdata-sections \
+   -imacrossl_gcc_preinclude.h -mfpu=fpv5-sp-d16 \
+   -mfloat-abi=hard -mcmse -c -fmessage-length=0
+
+L_FLAGS = \
+   -gdwarf-2 -mcpu=cortex-m33 -mthumb \
+   -Wl,-Map,"$(OUTPUT_DIR)/silabs.map" \
+   -T $(SRC_LOCATION)/LINKER/linkerfile.ld -Xlinker --gc-sections \
+   -mfpu=fpv5-sp-d16 -mfloat-abi=hard --specs=nano.specs -Wl,--start-group \
+   $(OBJECT_DIR)/*.o \
+   $(SENSATA_LIB_LOCATION)/reflash/$(hw_target)/outputs/libdfu.a \
+   $(GECKO_SDK_LOCATION)/protocol/bluetooth/lib/EFR32BG22/GCC/libbluetooth.a \
+   $(GECKO_SDK_LOCATION)/platform/emdrv/nvm3/lib/libnvm3_CM33_gcc.a \
+   $(GECKO_SDK_LOCATION)/platform/radio/rail_lib/autogen/librail_release/librail_config_bgm220pc22hna_gcc.a \
+   $(GECKO_SDK_LOCATION)/platform/radio/rail_lib/autogen/librail_release/librail_module_efr32xg22_gcc_release.a \
+   -lgcc -lc -lm -lnosys -Wl,--end-group -Wl,--start-group -lgcc -lc -lnosys -Wl,--end-group
+
+##---------------------------------------------------------------------------------------------------------------------
+## Silabs SDK code +  APP Code
+##---------------------------------------------------------------------------------------------------------------------
+   
+ASM_FILES = \
+   sl_udelay_armv6m_gcc.S
+   
+# List of all source files (.c and .S) under SRC_LOCATION folder except under reflash_test
+APP_SRC_FILES := $(shell find $(SRC_LOCATION) -name "*.c" | grep -v reflash_test)
+APP_ASM_FILES := $(shell find $(SRC_LOCATION) -name "*.S" | grep -v reflash_test)
+APP_H_FILES := $(shell find $(SRC_LOCATION) -name "*.h" | grep -v reflash_test)
+LIB_H_FILES := $(shell find $(SENSATA_LIB_LOCATION)/reflash/include -name "*.h")
+APP_INCLUDES := $(addprefix -I, $(realpath $(sort $(dir $(APP_H_FILES) $(LIB_H_FILES) )) ))
+
+ifeq ($(STREAMS_ENABLED), 1)
+    GECKO_SDK_SOURCE_STREAM_FILES = \
+       $(GECKO_SDK_LOCATION)/platform/service/iostream/src/sl_iostream.c \
+       $(GECKO_SDK_LOCATION)/platform/service/iostream/src/sl_iostream_eusart.c \
+       $(GECKO_SDK_LOCATION)/platform/service/iostream/src/sl_iostream_retarget_stdio.c \
+       $(GECKO_SDK_LOCATION)/platform/service/iostream/src/sl_iostream_rtt.c \
+       $(GECKO_SDK_LOCATION)/platform/service/iostream/src/sl_iostream_stdlib_config.c \
+       $(GECKO_SDK_LOCATION)/platform/service/iostream/src/sl_iostream_uart.c \
+       $(GECKO_SDK_LOCATION)/platform/service/iostream/src/sl_iostream_usart.c
+else
+    GECKO_SDK_SOURCE_STREAM_FILES = 
+endif
+
+ifeq ($(STREAMS_ENABLED), 1)
+    GECKO_SDK_SOURCE_CLI_FILES = \
+       $(GECKO_SDK_LOCATION)/platform/service/cli/src/sl_cli_arguments.c \
+       $(GECKO_SDK_LOCATION)/platform/service/cli/src/sl_cli_command.c \
+       $(GECKO_SDK_LOCATION)/platform/service/cli/src/sl_cli_input.c \
+       $(GECKO_SDK_LOCATION)/platform/service/cli/src/sl_cli_io.c \
+       $(GECKO_SDK_LOCATION)/platform/service/cli/src/sl_cli_tokenize.c \
+       $(GECKO_SDK_LOCATION)/platform/service/cli/src/sl_cli.c
+else
+    GECKO_SDK_SOURCE_CLI_FILES = 
+endif
+  
+ifeq ($(STREAMS_ENABLED), 1)
+    GECKO_SDK_SOURCE_APP_LOG_FILES = \
+       $(GECKO_SDK_LOCATION)/app/common/util/app_log/app_log.c
+else
+    GECKO_SDK_SOURCE_APP_LOG_FILES = 
+endif
+
+   
+   
+GECKO_SDK_SOURCE_FILES = \
+   $(GECKO_SDK_SOURCE_CLI_FILES) \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/sl_component/sl_psa_driver/src/cryptoacc_management.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/segger/systemview/SEGGER/SEGGER_RTT.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/sl_component/sl_psa_driver/src/sl_psa_its_nvm3.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/sl_component/sl_psa_driver/src/sli_cryptoacc_transparent_driver_aead.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/sl_component/sl_psa_driver/src/sli_cryptoacc_transparent_driver_cipher.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/sl_component/sl_psa_driver/src/sli_cryptoacc_transparent_driver_hash.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/sl_component/sl_psa_driver/src/sli_cryptoacc_transparent_driver_key_derivation.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/sl_component/sl_psa_driver/src/sli_cryptoacc_transparent_driver_key_management.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/sl_component/sl_psa_driver/src/sli_cryptoacc_transparent_driver_mac.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/sl_component/sl_psa_driver/src/sli_cryptoacc_transparent_driver_signature.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/sl_component/sl_psa_driver/src/sli_psa_driver_common.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/sl_component/sl_psa_driver/src/sli_psa_driver_init.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/sl_component/sl_psa_driver/src/sli_psa_trng.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/sl_component/sl_protocol_crypto/src/sli_protocol_crypto_radioaes.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/sl_component/sl_protocol_crypto/src/sli_radioaes_management.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/sl_component/sl_mbedtls_support/src/cryptoacc_aes.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/sl_component/sl_mbedtls_support/src/cryptoacc_gcm.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/sl_component/sl_mbedtls_support/src/mbedtls_ccm.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/sl_component/sl_mbedtls_support/src/mbedtls_cmac.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/sl_component/sl_mbedtls_support/src/mbedtls_ecdsa_ecdh.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/sl_component/sl_mbedtls_support/src/sl_mbedtls.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/sl_component/sl_cryptoacc_library/src/ba414ep_config.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/sl_component/sl_cryptoacc_library/src/ba431_config.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/sl_component/sl_cryptoacc_library/src/cryptodma_internal.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/sl_component/sl_cryptoacc_library/src/cryptolib_types.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/sl_component/sl_cryptoacc_library/src/sx_aes.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/sl_component/sl_cryptoacc_library/src/sx_blk_cipher.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/sl_component/sl_cryptoacc_library/src/sx_dh_alg.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/sl_component/sl_cryptoacc_library/src/sx_ecc_curves.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/sl_component/sl_cryptoacc_library/src/sx_ecc_keygen_alg.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/sl_component/sl_cryptoacc_library/src/sx_hash.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/sl_component/sl_cryptoacc_library/src/sx_ecdsa_alg.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/sl_component/sl_cryptoacc_library/src/sx_math.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/sl_component/sl_cryptoacc_library/src/sx_memcmp.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/sl_component/sl_cryptoacc_library/src/sx_memcpy.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/sl_component/sl_cryptoacc_library/src/sx_primitives.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/sl_component/sl_cryptoacc_library/src/sx_rng.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/sl_component/sl_cryptoacc_library/src/sx_trng.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/sl_component/se_manager/src/sl_se_manager.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/sl_component/se_manager/src/sl_se_manager_attestation.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/sl_component/se_manager/src/sl_se_manager_cipher.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/sl_component/se_manager/src/sl_se_manager_entropy.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/sl_component/se_manager/src/sl_se_manager_key_derivation.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/sl_component/se_manager/src/sl_se_manager_hash.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/sl_component/se_manager/src/sl_se_manager_key_handling.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/sl_component/se_manager/src/sl_se_manager_signature.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/mbedtls/library/cipher.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/sl_component/se_manager/src/sl_se_manager_util.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/mbedtls/library/cipher_wrap.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/mbedtls/library/platform.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/mbedtls/library/platform_util.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/mbedtls/library/psa_crypto.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/mbedtls/library/psa_crypto_aead.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/mbedtls/library/psa_crypto_cipher.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/mbedtls/library/psa_crypto_client.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/mbedtls/library/psa_crypto_driver_wrappers.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/mbedtls/library/psa_crypto_ecp.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/mbedtls/library/psa_crypto_hash.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/mbedtls/library/psa_crypto_mac.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/mbedtls/library/psa_crypto_rsa.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/mbedtls/library/psa_crypto_se.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/mbedtls/library/psa_crypto_slot_management.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/mbedtls/library/psa_crypto_storage.c \
+   $(GECKO_SDK_LOCATION)/util/third_party/crypto/mbedtls/library/threading.c \
+   $(GECKO_SDK_LOCATION)/util/silicon_labs/silabs_core/memory_manager/sl_malloc.c \
+   $(GECKO_SDK_LOCATION)/platform/service/udelay/src/sl_udelay.c \
+   $(GECKO_SDK_LOCATION)/platform/service/system/src/sl_system_init.c \
+   $(GECKO_SDK_LOCATION)/platform/service/system/src/sl_system_process_action.c \
+   $(GECKO_SDK_LOCATION)/platform/service/sleeptimer/src/sl_sleeptimer.c \
+   $(GECKO_SDK_LOCATION)/platform/service/sleeptimer/src/sl_sleeptimer_hal_prortc.c \
+   $(GECKO_SDK_LOCATION)/platform/service/sleeptimer/src/sl_sleeptimer_hal_burtc.c \
+   $(GECKO_SDK_LOCATION)/platform/service/sleeptimer/src/sl_sleeptimer_hal_rtcc.c \
+   $(GECKO_SDK_LOCATION)/platform/service/power_manager/src/sl_power_manager_debug.c \
+   $(GECKO_SDK_LOCATION)/platform/service/power_manager/src/sl_power_manager.c \
+   $(GECKO_SDK_LOCATION)/platform/service/power_manager/src/sl_power_manager_hal_s2.c \
+   $(GECKO_SDK_LOCATION)/platform/service/mpu/src/sl_mpu.c \
+   $(GECKO_SDK_SOURCE_STREAM_FILES) \
+   $(GECKO_SDK_LOCATION)/platform/service/hfxo_manager/src/sl_hfxo_manager.c \
+   $(GECKO_SDK_LOCATION)/platform/service/hfxo_manager/src/sl_hfxo_manager_hal_s2.c \
+   $(GECKO_SDK_LOCATION)/platform/service/device_init/src/sl_device_init_dcdc_s2.c \
+   $(GECKO_SDK_LOCATION)/platform/service/device_init/src/sl_device_init_emu_s2.c \
+   $(GECKO_SDK_LOCATION)/platform/service/device_init/src/sl_device_init_hfxo_s2.c \
+   $(GECKO_SDK_LOCATION)/platform/service/device_init/src/sl_device_init_lfrco.c \
+   $(GECKO_SDK_LOCATION)/platform/service/device_init/src/sl_device_init_lfxo_s2.c \
+   $(GECKO_SDK_LOCATION)/platform/service/device_init/src/sl_device_init_nvic.c \
+   $(GECKO_SDK_LOCATION)/platform/radio/rail_lib/plugin/rail_util_pti/sl_rail_util_pti.c \
+   $(GECKO_SDK_LOCATION)/platform/radio/rail_lib/plugin/pa-conversions/pa_conversions_efr32.c \
+   $(GECKO_SDK_LOCATION)/platform/emlib/src/em_assert.c \
+   $(GECKO_SDK_LOCATION)/platform/emlib/src/em_burtc.c \
+   $(GECKO_SDK_LOCATION)/platform/emlib/src/em_cmu.c \
+   $(GECKO_SDK_LOCATION)/platform/emlib/src/em_core.c \
+   $(GECKO_SDK_LOCATION)/platform/emlib/src/em_emu.c \
+   $(GECKO_SDK_LOCATION)/platform/emlib/src/em_eusart.c \
+   $(GECKO_SDK_LOCATION)/platform/emlib/src/em_prs.c \
+   $(GECKO_SDK_LOCATION)/platform/emlib/src/em_gpio.c \
+   $(GECKO_SDK_LOCATION)/platform/emlib/src/em_msc.c \
+   $(GECKO_SDK_LOCATION)/platform/emlib/src/em_rtcc.c \
+   $(GECKO_SDK_LOCATION)/platform/emlib/src/em_se.c \
+   $(GECKO_SDK_LOCATION)/platform/emlib/src/em_system.c \
+   $(GECKO_SDK_LOCATION)/platform/emlib/src/em_timer.c \
+   $(GECKO_SDK_LOCATION)/platform/emlib/src/em_usart.c \
+   $(GECKO_SDK_LOCATION)/platform/emdrv/nvm3/src/nvm3_default_common_linker.c \
+   $(GECKO_SDK_LOCATION)/platform/emdrv/nvm3/src/nvm3_hal_flash.c \
+   $(GECKO_SDK_LOCATION)/platform/emdrv/nvm3/src/nvm3_lock.c \
+   $(GECKO_SDK_LOCATION)/platform/common/toolchain/src/sl_memory.c \
+   $(GECKO_SDK_LOCATION)/platform/common/src/sl_slist.c \
+   $(GECKO_SDK_LOCATION)/platform/common/src/sl_string.c \
+   $(GECKO_SDK_LOCATION)/platform/bootloader/app_properties/app_properties.c \
+   $(GECKO_SDK_LOCATION)/platform/bootloader/api/btl_interface.c \
+   $(GECKO_SDK_LOCATION)/platform/bootloader/api/btl_interface_storage.c \
+   $(GECKO_SDK_LOCATION)$(STARTUP_C) \
+   $(GECKO_SDK_LOCATION)$(SYSTEM_C) \
+   $(GECKO_SDK_LOCATION)/hardware/board/src/sl_board_control_gpio.c \
+   $(GECKO_SDK_LOCATION)/hardware/board/src/sl_board_init.c \
+   $(GECKO_SDK_LOCATION)/app/bluetooth/common/ota_dfu/sl_ota_dfu.c \
+   $(GECKO_SDK_SOURCE_APP_LOG_FILES)
+   
+SOURCE_FILES = \
+   $(APP_SRC_FILES) \
+   $(APP_ASM_FILES) \
+   $(GECKO_SDK_SOURCE_FILES)
+
+
+
+INCLUDE_FILES = \
+   $(APP_INCLUDES) \
+   -I $(GECKO_SDK_LOCATION)/util/third_party/segger/systemview/SEGGER \
+   -I $(GECKO_SDK_LOCATION)$(PART_INCLUDE) \
+   -I $(GECKO_SDK_LOCATION)/app/common/util/app_assert \
+   -I $(GECKO_SDK_LOCATION)/app/common/util/app_log \
+   -I $(GECKO_SDK_LOCATION)/platform/common/inc \
+   -I $(GECKO_SDK_LOCATION)/protocol/bluetooth/inc \
+   -I $(GECKO_SDK_LOCATION)/platform/service/cli/inc \
+   -I $(GECKO_SDK_LOCATION)/platform/service/cli/src \
+   -I $(GECKO_SDK_LOCATION)/platform/service/udelay/inc \
+   -I $(GECKO_SDK_LOCATION)/hardware/board/inc \
+   -I $(GECKO_SDK_LOCATION)/platform/bootloader \
+   -I $(GECKO_SDK_LOCATION)/platform/bootloader/api \
+   -I $(GECKO_SDK_LOCATION)/platform/driver/button/inc \
+   -I $(GECKO_SDK_LOCATION)/platform/CMSIS/Include \
+   -I $(GECKO_SDK_LOCATION)/platform/CMSIS/Core/Include \
+   -I $(GECKO_SDK_LOCATION)/util/third_party/crypto/sl_component/sl_cryptoacc_library/include \
+   -I $(GECKO_SDK_LOCATION)/platform/service/device_init/inc \
+   -I $(GECKO_SDK_LOCATION)/platform/emdrv/common/inc \
+   -I $(GECKO_SDK_LOCATION)/platform/emlib/inc \
+   -I $(GECKO_SDK_LOCATION)/platform/emdrv/gpiointerrupt/inc \
+   -I $(GECKO_SDK_LOCATION)/platform/service/hfxo_manager/inc \
+   -I $(GECKO_SDK_LOCATION)/platform/service/iostream/inc \
+   -I $(GECKO_SDK_LOCATION)/platform/driver/leddrv/inc \
+   -I $(GECKO_SDK_LOCATION)/util/third_party/crypto/sl_component/sl_mbedtls_support/config \
+   -I $(GECKO_SDK_LOCATION)/util/third_party/crypto/mbedtls/include \
+   -I $(GECKO_SDK_LOCATION)/util/third_party/crypto/mbedtls/library \
+   -I $(GECKO_SDK_LOCATION)/util/third_party/crypto/sl_component/sl_mbedtls_support/inc \
+   -I $(GECKO_SDK_LOCATION)/util/third_party/crypto/sl_component/sl_psa_driver/inc \
+   -I $(GECKO_SDK_LOCATION)/util/third_party/crypto/sl_component/se_manager/inc \
+   -I $(GECKO_SDK_LOCATION)/util/third_party/crypto/sl_component/se_manager/src \
+   -I $(GECKO_SDK_LOCATION)/util/third_party/crypto/sl_component/sl_protocol_crypto/src \
+   -I $(GECKO_SDK_LOCATION)/util/third_party/crypto/mbedtls/include/mbedtls \
+   -I $(GECKO_SDK_LOCATION)/util/third_party/crypto/mbedtls/include/psa \
+   -I $(GECKO_SDK_LOCATION)/platform/service/mpu/inc \
+   -I $(GECKO_SDK_LOCATION)/platform/emdrv/nvm3/inc \
+   -I $(GECKO_SDK_LOCATION)/app/bluetooth/common/ota_dfu \
+   -I $(GECKO_SDK_LOCATION)/platform/service/power_manager/inc \
+   -I $(GECKO_SDK_LOCATION)/platform/radio/rail_lib/common \
+   -I $(GECKO_SDK_LOCATION)/platform/radio/rail_lib/protocol/ble \
+   -I $(GECKO_SDK_LOCATION)/platform/radio/rail_lib/protocol/ieee802154 \
+   -I $(GECKO_SDK_LOCATION)/platform/radio/rail_lib/protocol/zwave \
+   -I $(GECKO_SDK_LOCATION)/platform/radio/rail_lib/chip/efr32/efr32xg2x \
+   -I $(GECKO_SDK_LOCATION)/platform/radio/rail_lib/plugin/pa-conversions \
+   -I $(GECKO_SDK_LOCATION)/platform/radio/rail_lib/plugin/pa-conversions/efr32xg22 \
+   -I $(GECKO_SDK_LOCATION)/platform/radio/rail_lib/plugin/rail_util_pti \
+   -I $(GECKO_SDK_LOCATION)/util/silicon_labs/silabs_core/memory_manager \
+   -I $(GECKO_SDK_LOCATION)/platform/common/toolchain/inc \
+   -I $(GECKO_SDK_LOCATION)/platform/service/system/inc \
+   -I $(GECKO_SDK_LOCATION)/platform/service/sleeptimer/inc \
+   -I $(GECKO_SDK_LOCATION)/util/third_party/crypto/sl_component/sl_protocol_crypto/src 
+
+
+OBJECT_FILES := $(patsubst %.c, $(OBJECT_DIR)/%.o, $(notdir $(SOURCE_FILES))) \
+                $(patsubst %.S, $(OBJECT_DIR)/%.o, $(notdir $(ASM_FILES)))
+
+DEPENDS := $(patsubst %.c, $(OBJECT_DIR)/%.d, $(notdir $(SOURCE_FILES)))
+VPATH := $(sort  $(dir $(SOURCE_FILES)) $(dir $(ASM_FILES)))
+
+.PHONY : all
+ifeq ($(OSNAME), GNU/Linux)
+all : silabs
+else
+all : silabs_gbl
+endif
+
+silabs_gbl : silabs 
+	@$(SILABS_GBL_CONVERT) $(OUTPUT_DIR)/silabs.gbl --compress lzma --app $(OUTPUT_DIR)/silabs.hex
+    
+silabs : sensata_libs $(OBJECT_FILES)
+	$(ECHO_ON)$(ARM_GCC) $(L_FLAGS) -o $(OUTPUT_DIR)/silabs.elf
+	@$(ARM_OBJCOPY) -O ihex $(OUTPUT_DIR)/silabs.elf $(OUTPUT_DIR)/silabs.hex	    
+
+silabs_boot : 
+	@$(MAKE) -C$(SENSATA_LIB_LOCATION)/boot_apploader/bootloader_apploader $(MAKECMDGOALS)
+
+-include $(DEPENDS)
+    
+$(OBJECT_DIR)/%.o : %.c makefile | $(OBJECT_DIR) $(OUTPUT_DIR) 
+	@echo 'building $<'
+	$(ECHO_ON)$(ARM_GCC) $(C_FLAGS) $(INCLUDE_FILES) -MMD -MP -MF$(patsubst %.o, %.d, $@) -MT$@ -o $@ $<
+
+$(OBJECT_DIR)/%.o : %.S makefile | $(OBJECT_DIR) $(OUTPUT_DIR)
+	$(ECHO_ON)$(ARM_GCC) $(ASM_FLAGS) -o $@ $<
+
+$(OBJECT_DIR):
+	mkdir -p $(OBJECT_DIR)
+
+$(OUTPUT_DIR):
+	mkdir -p $(OUTPUT_DIR)
+
+.PHONY : sensata_libs
+sensata_libs : 
+	@$(MAKE) -C $(SENSATA_LIB_LOCATION)/reflash $(MAKECMDGOALS)
+
+.PHONY : silabs_upload
+.ONESHELL:
+silabs_upload :
+	$(RM) jlink_dev_list.txt
+	@echo -e "Uploading Silabs firmware executable to Silabs <s/n $(SILABS_USB_SN)>"
+	@echo device EFR32MG22CXXXF512 > $(TEMP_FILE)
+	@echo connect >> $(TEMP_FILE)
+	@echo loadfile BOOT/boot_area.hex >> $(TEMP_FILE)
+	@echo loadfile $(OUTPUT_DIR)/silabs.hex >> $(TEMP_FILE)
+	@echo r >> $(TEMP_FILE)
+	@echo g >> $(TEMP_FILE)
+	@echo exit >> $(TEMP_FILE)
+	@$(JLINK_EXE) -usb $(SILABS_USB_SN) -if SWD -speed 4000 -CommanderScript $(TEMP_FILE) >> /dev/null
+	@$(RM) $(TEMP_FILE)
+	@# sleep for 8 seconds to allow the Silabs to reflash the Gen7 if necessary
+	@sleep 8    
+
+.PHONY : clean_reflash	
+clean_reflash :
+	$(RM) $(SENSATA_LIB_LOCATION)/reflash/SALIERI
+	$(RM) $(SENSATA_LIB_LOCATION)/reflash/TESLA_DV
+
+.PHONY : clean_tesla_dv	
+clean_tesla_dv :
+	$(RM) TESLA_DV	
+
+.PHONY : clean_silabs_bgm	
+clean_silabs_bgm :
+	$(RM) SILABS_BGM220P_EXPLORER	
+	
+.PHONY : clean_salieri	
+clean_salieri :
+	$(RM) SALIERI	
+
+.PHONY : clean_kendall
+clean_kendall :
+	$(RM) KENDALL
+    
+.PHONY : clean	
+clean : clean_reflash clean_tesla_dv clean_salieri clean_kendall
+	
