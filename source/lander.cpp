@@ -13,6 +13,7 @@
 // ahg@eng.cam.ac.uk and gc121@eng.cam.ac.uk.
 
 #include "all.h"
+
 vector3d positionNMinus1;
 using namespace std;
 
