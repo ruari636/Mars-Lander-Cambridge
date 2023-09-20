@@ -1132,13 +1132,13 @@ void draw_orbital_window (void)
   glTranslatef(MoonPos.x, MoonPos.y, MoonPos.z); // this can be used to move the ball
   glRotated(360.0*simulation_time/MARS_DAY, 0.0, 0.0, 1.0); // moons tend to rotate at the same speed as their planets
   if (orbital_zoom > 1.0 && MoonSelected) {
-    slices = (int)(16*orbital_zoom); if (slices > 160) slices = 160;
-    stacks = (int)(10*orbital_zoom); if (stacks > 100) stacks = 100;
+    slices = (int)(10*orbital_zoom); if (slices > 100) slices = 100;
+    stacks = (int)(6*orbital_zoom); if (stacks > 60) stacks = 60;
   } else {
-    slices = 16; stacks = 10;
+    slices = 10; stacks = 6;
   }
   gluQuadricDrawStyle(quadObj, GLU_FILL);
-  gluSphere(quadObj, (1.0 - 0.01/orbital_zoom)*MARS_RADIUS * MOONRADIUSRATIO, slices, stacks);
+  gluSphere(quadObj, MOONRADIUS, slices, stacks);
   glColor3f(0.31, 0.16, 0.11);
   gluQuadricDrawStyle(quadObj, GLU_LINE);
   gluSphere(quadObj, MARS_RADIUS * MOONRADIUSRATIO, slices, stacks);
@@ -2181,11 +2181,13 @@ void closeup_mouse_motion (int x, int y)
   // Callback for mouse drags in the close-up view window
 {
   if (last_click_x < 0) return; // not the left mouse button
+  double RotationLimit = 105.0;
+  if (Altitude < EXOSPHERE) RotationLimit = 45.0;
 
   closeup_xr += y - last_click_y;
   closeup_yr += x - last_click_x;
-  if (closeup_xr < -105.0) closeup_xr = -105.0;
-  if (closeup_xr > 105.0) closeup_xr = 105.0;
+  if (closeup_xr < -RotationLimit) closeup_xr = -RotationLimit;
+  if (closeup_xr > RotationLimit) closeup_xr = RotationLimit;
   last_click_y = y;
   last_click_x = x;
   if (paused || Landed) refresh_all_subwindows();

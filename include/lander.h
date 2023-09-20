@@ -86,7 +86,7 @@
 #define MAX_IMPACT_GROUND_SPEED 1.0 // (m/s)
 #define MAX_IMPACT_DESCENT_RATE 1.0 // (m/s)
 
-#define MOONRADIUSRATIO 0.3
+#define MOONRADIUSRATIO 0.5
 #define MOONRADIUS MARS_RADIUS * MOONRADIUSRATIO
 #define MOONMASS MARS_MASS * MOONRADIUSRATIO * MOONRADIUSRATIO * MOONRADIUSRATIO * 0.7
 #define MOONOMEGA sqrt(MARS_MASS * GRAVITY / (pow(MoonDistance, 3.0)))
@@ -177,6 +177,7 @@ extern bool MoonGravityEnabled;
 extern double MoonDistInitial;
 extern double MostImportantMass;
 extern double Altitude;
+extern double orbital_zoom;
 
 //********************************************************************//
 

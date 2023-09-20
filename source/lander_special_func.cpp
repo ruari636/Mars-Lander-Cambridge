@@ -160,8 +160,8 @@ void IterativeSuicideBurnEstimator()
     for (int i = 0; i < 5; i++)
     {
         ForceEstimate = MAX_THRUST - (MARS_MASS * avgLanderMassInBurn * GRAVITY) / (MARS_RADIUS * MARS_RADIUS);
-        DragEstimate = (FDragLander.abs() + FDragChute.abs()) * (0.01);// + (VelTowardsGnd * (5.4E-6 + VelTowardsGnd * 5.5E-8)));// + VelTowardsGnd * 1.0E-8))); //(FDragLander.abs() + FDragChute.abs()) * 0.01;
-        //double VelTowardsGnd = velocity * position.norm();
+        DragEstimate = (FDragLander.abs() + FDragChute.abs()) * (0.01) + (climb_speed * (6.0E-1)); //+ climb_speed * 5.5E-8)));// + climb_speed * 1.0E-8))); //(FDragLander.abs() + FDragChute.abs()) * 0.01;
+        //double climb_speed = velocity * position.norm();
         EstimatedTimeToBurnSuicide = velocity.abs() / 
             ((ForceEstimate + DragEstimate) / avgLanderMassInBurn); // t = -u/a when v = 0
         avgLanderMassInBurn = LANDERMASS - 
@@ -195,10 +195,10 @@ void LandSuicide()
     {
         if (SuicideBurnStarted)
         {
+            AutoDeployParachuteWhenReady();
             ThrustProportionalToUnsafeVel();
         }
         UpdateSuicideBurn();
-        AutoDeployParachuteWhenReady();
     }
 }
 

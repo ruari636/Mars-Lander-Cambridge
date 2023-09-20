@@ -20,6 +20,8 @@ static bool TimerStopped = false;;
 
 typedef void (*VoidFunction)();
 
+void ResetHelperInfo();
+
 void DisplayTransferStatus();
 
 void HelperInfoDrawer(VoidFunction HelpfulfInformation);

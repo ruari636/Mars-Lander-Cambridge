@@ -7,6 +7,12 @@ double StartTimer;
 double StopTimer;
 double EstimatedTimeToBurnSuicideSave;
 
+void ResetHelperInfo()
+{
+    StartTimer = 0; StopTimer = 0;
+    TimerStarted = false; TimerStopped = false;
+}
+
 void glut_print_helper (float x, float y, string s)
   // Prints string at location (x,y) in a bitmap font
 {
@@ -89,7 +95,7 @@ void KEandEstimatedSuicideBurnWork()
                                  to_string((int)EnergyToBurn)); curYpos += TEXTGAPHELP;
             if (!TimerStarted)
             {
-                if (Altitude < MAXSUICIDEBURNCHECKHEIGHT) {
+                if (Altitude < 2000) {
                     glut_print_helper(TEXTSTARTX, view_height-curYpos, "Estimated time to landing : "); 
                     glut_print_helper(TEXTSTARTX + 400, view_height-curYpos, to_string(EstimatedTimeToBurnSuicide)); curYpos += TEXTGAPHELP; 
                 }

@@ -152,12 +152,14 @@ void initialize_simulation (void)
 {
   InitialiseSpecialFunc();
   InitialiseOrbitTransfers();
+  ResetHelperInfo();
   AUTO_NEXT = DONOTHING;
   RotationAngle = 0.0;
   TakingInput = false;
   CurrentSelection = 0;
   MoonGravityEnabled = true;
-  double MoonDistInitial = 15 * MARS_RADIUS;
+  double MoonDistInitial = 20 * MARS_RADIUS;
+  orbital_zoom = 0.15;
   // The parameters to set are:
   // position - in Cartesian planetary coordinate system (m)
   // velocity - in Cartesian planetary coordinate system (m/s)
@@ -186,7 +188,8 @@ void initialize_simulation (void)
     parachute_status = NOT_DEPLOYED;
     stabilized_attitude = false;
     autopilot_enabled = false;
-    MoonDistInitial = 9400000;
+    MoonDistInitial = 36000000;
+    orbital_zoom = 0.22;
     break;
 
   case 1:
@@ -267,4 +270,6 @@ void initialize_simulation (void)
   Lowest_Height = position.abs();
   Greatest_Height = position.abs();
   MoonDistance = MoonDistInitial;
+  set_orbital_projection_matrix();
+  refresh_all_subwindows();
 }
