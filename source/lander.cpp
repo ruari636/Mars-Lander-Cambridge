@@ -32,6 +32,7 @@ bool TakingInput;
 bool MoonGravityEnabled;
 double MoonDistance;
 double MoonDistInitial = 15 * MARS_RADIUS;
+double Altitude;
 
 void autopilot (void)
 {
@@ -108,10 +109,11 @@ void numerical_dynamics (void)
   FGravMars = -position.norm() * ((MARS_MASS * LANDERMASS * GRAVITY) / (position.abs2()));
   if (MoonGravityEnabled)
   {
-    FGravMoon = MoonRelPos.norm() * ((MOONMASS * LANDERMASS * GRAVITY) / (MoonRelPos.abs2()));;
+    FGravMoon = MoonRelPos.norm() * ((MOONMASS * LANDERMASS * GRAVITY) / (MoonRelPos.abs2()));
   }
   MarsSphereOfInfluence = FGravMars.abs2() > FGravMoon.abs2();
-  MostImportantMass = MarsSphereOfInfluence ? MARS_MASS : MOONMASS;
+  MostImportantMass = MarsSphereOfInfluence ? MARS_MASS:MOONMASS;
+  Altitude = MarsSphereOfInfluence ? MarsAltitude:MoonAltitude;
 
   FDragLander = pow(LANDER_SIZE, 2) * DRAGCONSTANT(DRAG_COEF_LANDER) * VELCONSTANT;
   FDragChute = pow(LANDER_SIZE * 2, 2) * 5 * DRAGCONSTANT(DRAG_COEF_CHUTE) * VELCONSTANT;

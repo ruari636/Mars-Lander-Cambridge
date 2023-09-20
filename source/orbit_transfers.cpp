@@ -81,7 +81,7 @@ void PlanDeorbitIfInPermanentOrbit()
                        // otherwise perigee and apogee wouldn't have been measured
     {
         // Put us into a landing orbit
-        double NewPerigee = EXOSPHERE * 0.6 + MARS_RADIUS; // To use drag to slow us down
+        double NewPerigee = EXOSPHERE * 0.4 + MARS_RADIUS; // To use drag to slow us down
         if (position.abs() > Greatest_Height * 0.99)
         {
             double fuelToBurn = calculateFuelBurnedForNewPerigee(Greatest_Height, 

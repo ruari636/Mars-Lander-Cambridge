@@ -17,6 +17,8 @@ bool descending;
 double avgLanderMassInBurn;
 double DragEstimate;
 double ForceEstimate;
+double KE;
+double EstimatedTimeToBurnSuicide;
 
 void InitialiseSpecialFunc()
 {
@@ -158,12 +160,12 @@ void IterativeSuicideBurnEstimator()
     for (int i = 0; i < 5; i++)
     {
         ForceEstimate = MAX_THRUST - (MARS_MASS * avgLanderMassInBurn * GRAVITY) / (MARS_RADIUS * MARS_RADIUS);
-        DragEstimate = (FDragLander.abs() + FDragChute.abs()) * (0.008);// + (VelTowardsGnd * (5.4E-6 + VelTowardsGnd * 5.5E-8)));// + VelTowardsGnd * 1.0E-8))); //(FDragLander.abs() + FDragChute.abs()) * 0.01;
+        DragEstimate = (FDragLander.abs() + FDragChute.abs()) * (0.01);// + (VelTowardsGnd * (5.4E-6 + VelTowardsGnd * 5.5E-8)));// + VelTowardsGnd * 1.0E-8))); //(FDragLander.abs() + FDragChute.abs()) * 0.01;
         //double VelTowardsGnd = velocity * position.norm();
-        double EstimatedTimeToBurn = velocity.abs() / 
+        EstimatedTimeToBurnSuicide = velocity.abs() / 
             ((ForceEstimate + DragEstimate) / avgLanderMassInBurn); // t = -u/a when v = 0
         avgLanderMassInBurn = LANDERMASS - 
-                (EstimatedTimeToBurn * FUEL_RATE_AT_MAX_THRUST * FUEL_DENSITY) / 1.5;
+                (EstimatedTimeToBurnSuicide * FUEL_RATE_AT_MAX_THRUST * FUEL_DENSITY) / 1.5;
     }
 }
 
@@ -176,11 +178,11 @@ bool UpdateSuicideBurn()
         if (!SuicideBurnStarted)
         {
             avgLanderMassInBurn = LANDERMASS;
-            double KE = 0.5 * LANDERMASS * velocity.abs2();
             IterativeSuicideBurnEstimator();
-            SuicideBurnStarted = (((ForceEstimate + DragEstimate) * MarsAltitude < KE) && MarsAltitude < MAXSUICIDEBURNCHECKHEIGHT); // At 5km the max vel we can stop is
+            EnergyToBurn = (ForceEstimate + DragEstimate) * Altitude;
+            SuicideBurnStarted = (EnergyToBurn < KE && MarsAltitude < MAXSUICIDEBURNCHECKHEIGHT); // At 5km the max vel we can stop is
         }
-        else if (velocity.abs() < VMax && MarsAltitude > 5000.0) SuicideBurnStarted = false; // We entered the atmosphere so fast that suicide burn was triggered early
+        else if (velocity.abs() < VMax && Altitude > 5000.0) SuicideBurnStarted = false; // We entered the atmosphere so fast that suicide burn was triggered early
     }
     if (SuicideBurnStarted) VelDescent = max(sqrt(2 * ((MAX_THRUST - (MARS_MASS * LANDERMASS * GRAVITY) / (MARS_RADIUS * MARS_RADIUS)) * HEIGHTTOLANDINGSPEED) / LANDERMASS) * 0.8, 0.5); 
     return SuicideBurnStarted;
@@ -188,6 +190,7 @@ bool UpdateSuicideBurn()
 
 void LandSuicide()
 {    
+    KE = 0.5 * LANDERMASS * velocity.abs2();
     if (!OrbitChangeBurn)
     {
         if (SuicideBurnStarted)

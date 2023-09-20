@@ -176,6 +176,7 @@ extern vector3d MoonRelPos;
 extern bool MoonGravityEnabled;
 extern double MoonDistInitial;
 extern double MostImportantMass;
+extern double Altitude;
 
 //********************************************************************//
 
@@ -193,7 +194,7 @@ bool texture_available;
 // Simulation parameters
 bool help = false;
 bool paused = false;
-bool landed = false;
+bool Landed = false;
 bool crashed = false;
 int last_click_x = -1;
 int last_click_y = -1;
@@ -219,6 +220,7 @@ extern vector3d FGravMars;
 extern vector3d FGravMoon;
 bool MarsSphereOfInfluence = true;
 bool MoonSelected = false;
+bool LanderSelected = false;
 bool MoonSelectedAuto = false;
 
 // Lander state - the visualization routines use velocity_from_positions, so not sensitive to 

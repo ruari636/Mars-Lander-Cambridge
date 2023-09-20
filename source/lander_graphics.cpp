@@ -771,14 +771,14 @@ void draw_instrument_window (void)
   draw_indicator_lamp (view_width+GAP-400, INSTRUMENT_HEIGHT-18, "Auto-pilot off", "Auto-pilot on", autopilot_enabled);
 
   // Draw climb rate meter
-  if (climb_speed >= 0.0) draw_dial (view_width+GAP-150, INSTRUMENT_HEIGHT/2, landed ? 0.0 : climb_speed, "Climb rate", "m/s");
-  else draw_dial (view_width+GAP-150, INSTRUMENT_HEIGHT/2, landed ? 0.0 : -climb_speed, "Descent rate", "m/s");
+  if (climb_speed >= 0.0) draw_dial (view_width+GAP-150, INSTRUMENT_HEIGHT/2, Landed ? 0.0 : climb_speed, "Climb rate", "m/s");
+  else draw_dial (view_width+GAP-150, INSTRUMENT_HEIGHT/2, Landed ? 0.0 : -climb_speed, "Descent rate", "m/s");
 
   // Draw attitude stabilizer lamp
   draw_indicator_lamp (view_width+GAP-150, INSTRUMENT_HEIGHT-18, "Attitude stabilizer off", "Attitude stabilizer on", stabilized_attitude);
 
   // Draw ground speed meter
-  draw_dial (view_width+GAP+100, INSTRUMENT_HEIGHT/2, landed ? 0.0 : ground_speed, "Ground speed", "m/s");
+  draw_dial (view_width+GAP+100, INSTRUMENT_HEIGHT/2, Landed ? 0.0 : ground_speed, "Ground speed", "m/s");
 
   // Draw parachute lamp
   switch (parachute_status) {
@@ -831,12 +831,12 @@ void draw_instrument_window (void)
   else draw_control_bar(view_width+GAP+240, INSTRUMENT_HEIGHT-242, fuel, 1.0, 0.0, 0.0, s.str());
 
   // Display simulation status
-  if (landed) glColor3f(1.0, 1.0, 0.0);
+  if (Landed) glColor3f(1.0, 1.0, 0.0);
   else glColor3f(1.0, 1.0, 1.0);
   s.str(""); s << "Scenario " << scenario;
-  if (!landed) s << ": " << scenario_description[scenario];
+  if (!Landed) s << ": " << scenario_description[scenario];
   glut_print(view_width+GAP-488, 17, s.str());
-  if (landed) {
+  if (Landed) {
     if (MarsAltitude < LANDER_SIZE/2.0) glut_print(80, 17, "Lander is below the surface!");
     else {
       s.str(""); s << "Fuel consumed " << fixed << FUEL_CAPACITY*(1.0-fuel) << " litres";
@@ -889,7 +889,7 @@ void display_help_arrows (void)
   glPopMatrix();
 
   // Ground speed arrow
-  if ((ground_speed > MAX_IMPACT_GROUND_SPEED) && !landed) {
+  if ((ground_speed > MAX_IMPACT_GROUND_SPEED) && !Landed) {
     glBegin(GL_LINES);
     glVertex3d(-2.0*s, 0.0, 0.0);
     glVertex3d(-6.0*s, 0.0, 0.0);
@@ -951,10 +951,9 @@ void display_help_text (void)
   glut_print(TEXTSTARTX, view_height-curYpos, "a - toggle autopilot"); curYpos += NEWLINE;
 
   glut_print(TEXTSTARTX, view_height-curYpos, "I and K - change moon distance"); curYpos += TEXTGAP;
-  glut_print(TEXTSTARTX, view_height-curYpos, "m - select moon"); curYpos += TEXTGAP;
+  glut_print(TEXTSTARTX, view_height-curYpos, "m - change orbital view selection"); curYpos += TEXTGAP;
   glut_print(TEXTSTARTX, view_height-curYpos, "l - toggle lighting model"); curYpos += TEXTGAP;
   glut_print(TEXTSTARTX, view_height-curYpos, "t - toggle terrain texture"); curYpos += TEXTGAP;
-  glut_print(TEXTSTARTX, view_height-curYpos, "h - toggle help"); curYpos += TEXTGAP;
   glut_print(TEXTSTARTX, view_height-curYpos, "Esc/q - quit"); curYpos += NEWLINE;
 
   j = 0;
@@ -1079,19 +1078,26 @@ void draw_orbital_window (void)
   // Viewing transformation
   quat_to_matrix(m, orbital_quat);
   glMultMatrixd(m);
-  if (orbital_zoom > 2.0) { // gradual pan towards the lander when zoomed in
-    sf = 1.0 - exp((2.0-orbital_zoom)/5.0);
-    if (MoonSelected)
-    {
-      glTranslated(sf*MoonRelPos.x, sf*MoonRelPos.y, sf*MoonRelPos.z);
-    }
-    else
-    { glTranslated(-sf*position.x, -sf*position.y, -sf*position.z); }
-  }
+
+  // below feature disabled as it conflicts with selection feature
+
+  //if (orbital_zoom > 2.0 && !LanderSelected) { // gradual pan towards the lander when zoomed in
+  //  sf = 1.0 - exp((2.0-orbital_zoom)/5.0);
+  //  if (MoonSelected)
+  //  {
+  //    glTranslated(sf*MoonRelPos.x, sf*MoonRelPos.y, sf*MoonRelPos.z);
+  //  }
+  //  else
+  //  { glTranslated(-sf*position.x, -sf*position.y, -sf*position.z); }
+  //}
   
   if (MoonSelected)
   {
     glTranslated(-MoonPos.x, -MoonPos.y, -MoonPos.z);
+  }
+  else if (LanderSelected)
+  {
+    glTranslated(-position.x, -position.y, -position.z);    
   }
 
   if (static_lighting) {
@@ -1125,7 +1131,7 @@ void draw_orbital_window (void)
   glPushMatrix();
   glTranslatef(MoonPos.x, MoonPos.y, MoonPos.z); // this can be used to move the ball
   glRotated(360.0*simulation_time/MARS_DAY, 0.0, 0.0, 1.0); // moons tend to rotate at the same speed as their planets
-  if (orbital_zoom > 1.0) {
+  if (orbital_zoom > 1.0 && MoonSelected) {
     slices = (int)(16*orbital_zoom); if (slices > 160) slices = 160;
     stacks = (int)(10*orbital_zoom); if (stacks > 100) stacks = 100;
   } else {
@@ -1545,7 +1551,7 @@ void draw_closeup_window (void)
 	// Fade the lines out towards the horizon, to avoid aliasing artefacts. The fade is a function of distance from the
 	// centre (tmp) and MarsAltitude: the lower the lander gets, the more pronounced the fade.
 	// We need to do draw each line in two parts, with a vertex nearby, to get the fog calculations correct in all OpenGL implementations.
-	// To make the lines fade more strongly when landed, decrease the second number.
+	// To make the lines fade more strongly when Landed, decrease the second number.
 	// To make the lines less apparent at high MarsAltitude, decrease the first number. 
 	f = exp( -fabs( pow((transition_altitude-MarsAltitude) / transition_altitude, 10.0) * tmp / (10.0*GROUND_LINE_SPACING)) );
 	glColor4f(0.32, 0.17, 0.11, f);
@@ -1764,7 +1770,7 @@ void refresh_all_subwindows (void)
       break;
     }
     if (n>=1000) n=0;
-    if (!paused && !landed && n) return;
+    if (!paused && !Landed && n) return;
   }
 
   glutPostWindowRedisplay(closeup_window);
@@ -1804,8 +1810,8 @@ void update_visualization (void)
   climb_speed = velocity_from_positions*av_p;
   ground_speed = (velocity_from_positions - climb_speed*av_p).abs();
 
-  // Check to see whether the lander has landed
-  if (MarsAltitude < LANDER_SIZE/2.0) {
+  // Check to see whether the lander has Landed
+  if (Altitude < LANDER_SIZE/2.0) {
     glutIdleFunc(NULL);
     // Estimate position and time of impact
     d = position - last_position;
@@ -1816,7 +1822,7 @@ void update_visualization (void)
     position = last_position + mu*d;
     simulation_time -= (1.0-mu)*delta_t; 
     MarsAltitude = LANDER_SIZE/2.0;
-    landed = true;
+    Landed = true;
     if ((fabs(climb_speed) > MAX_IMPACT_DESCENT_RATE) || (fabs(ground_speed) > MAX_IMPACT_GROUND_SPEED)) crashed = true;
     velocity_from_positions = vector3d(0.0, 0.0, 0.0);
   }
@@ -1832,7 +1838,7 @@ void update_visualization (void)
     position = last_position + mu*d;
     simulation_time -= (1.0-mu)*delta_t; 
     MoonAltitude = LANDER_SIZE/2.0;
-    landed = true;
+    Landed = true;
     if ((fabs(climb_speed) > MAX_IMPACT_DESCENT_RATE) || (fabs(ground_speed) > MAX_IMPACT_GROUND_SPEED)) crashed = true;
     velocity_from_positions = vector3d(0.0, 0.0, 0.0);
   }
@@ -1842,7 +1848,7 @@ void update_visualization (void)
   if (throttle > 1.0) throttle = 1.0;
   fuel -= delta_t * (FUEL_RATE_AT_MAX_THRUST*throttle) / FUEL_CAPACITY;
   if (fuel <= 0.0) fuel = 0.0;
-  if (landed || (fuel == 0.0)) throttle = 0.0;
+  if (Landed || (fuel == 0.0)) throttle = 0.0;
   throttle_control = (short)(throttle*THROTTLE_GRANULARITY + 0.5);
 
   // Check to see whether the parachute has vaporized or the tethers have snapped
@@ -1909,7 +1915,7 @@ vector3d thrust_wrt_world (void)
   if (simulation_time < last_time_lag_updated) lagged_throttle = 0.0; // simulation restarted
   if (throttle < 0.0) throttle = 0.0;
   if (throttle > 1.0) throttle = 1.0;
-  if (landed || (fuel == 0.0)) throttle = 0.0;
+  if (Landed || (fuel == 0.0)) throttle = 0.0;
 
   if (simulation_time != last_time_lag_updated) {
 
@@ -1982,16 +1988,17 @@ void reset_simulation (void)
 
   // Restore initial lander state
   MoonSelected = false;
+  LanderSelected = false;
   MoonSelectedAuto = false;
   initialize_simulation();
 
   // Check whether the lander is underground - if so, make sure it doesn't move anywhere
-  landed = false;
+  Landed = false;
   crashed = false;
   MarsAltitude = position.abs() - MARS_RADIUS;
   if (MarsAltitude < LANDER_SIZE/2.0) {
     glutIdleFunc(NULL);
-    landed = true;
+    Landed = true;
     velocity = vector3d(0.0, 0.0, 0.0);
   }
 
@@ -2025,7 +2032,7 @@ void reset_simulation (void)
   }
 
   // Reset GLUT state
-  if (paused || landed) refresh_all_subwindows();
+  if (paused || Landed) refresh_all_subwindows();
   else glutIdleFunc(update_lander_state);
 }
 
@@ -2101,7 +2108,7 @@ void orbital_mouse_button (int button, int state, int x, int y)
     }
     save_orbital_zoom = -1.0;
     set_orbital_projection_matrix();
-    if (paused || landed) refresh_all_subwindows();
+    if (paused || Landed) refresh_all_subwindows();
   }
   else if ((button == GLUT_WHEEL_DOWN) || ((button == GLUT_RIGHT_BUTTON) && (state == GLUT_DOWN))) {
     if (orbital_zoom > 0.001) {
@@ -2110,7 +2117,7 @@ void orbital_mouse_button (int button, int state, int x, int y)
     }
     save_orbital_zoom = -1.0;
     set_orbital_projection_matrix();
-    if (paused || landed) refresh_all_subwindows();
+    if (paused || Landed) refresh_all_subwindows();
   }
   if (button == GLUT_LEFT_BUTTON) {
     if (state == GLUT_UP) {
@@ -2138,7 +2145,7 @@ void orbital_mouse_motion (int x, int y)
   orbital_quat = add_quats(spin_quat, orbital_quat);
   last_click_x = x;
   last_click_y = y;
-  if (paused || landed) refresh_all_subwindows();
+  if (paused || Landed) refresh_all_subwindows();
 }
 
 void closeup_mouse_button (int button, int state, int x, int y)
@@ -2149,14 +2156,14 @@ void closeup_mouse_button (int button, int state, int x, int y)
       closeup_offset *= 0.9;
       if ((button == GLUT_MIDDLE_BUTTON) || glutGetModifiers()) closeup_offset *= 0.9; // to match wheel events
     }
-    if (paused || landed) refresh_all_subwindows();
+    if (paused || Landed) refresh_all_subwindows();
   }
   else if ((button == GLUT_WHEEL_DOWN) || ((button == GLUT_RIGHT_BUTTON) && (state == GLUT_DOWN))) {
     if (closeup_offset < 200.0*LANDER_SIZE) {
       closeup_offset /= 0.9;
       if (button == GLUT_RIGHT_BUTTON) closeup_offset /= 0.9; // to match wheel events
     }
-    if (paused || landed) refresh_all_subwindows();
+    if (paused || Landed) refresh_all_subwindows();
   }
   if (button == GLUT_LEFT_BUTTON) {
     if (state == GLUT_UP) {
@@ -2181,7 +2188,7 @@ void closeup_mouse_motion (int x, int y)
   if (closeup_xr > 105.0) closeup_xr = 105.0;
   last_click_y = y;
   last_click_x = x;
-  if (paused || landed) refresh_all_subwindows();
+  if (paused || Landed) refresh_all_subwindows();
 }
 
 void glut_special (int key, int x, int y)
@@ -2200,7 +2207,7 @@ void glut_special (int key, int x, int y)
     }
     else
     {
-      if (!autopilot_enabled && !landed && (fuel>0.0))
+      if (!autopilot_enabled && !Landed && (fuel>0.0))
       {
         throttle_control++;
         if (throttle_control>THROTTLE_GRANULARITY) throttle_control = THROTTLE_GRANULARITY;
@@ -2220,7 +2227,7 @@ void glut_special (int key, int x, int y)
     }
     else
     {
-      if (!autopilot_enabled && !landed)
+      if (!autopilot_enabled && !Landed)
       {
         throttle_control--;
         if (throttle_control<0) throttle_control = 0;
@@ -2239,7 +2246,7 @@ void glut_special (int key, int x, int y)
       if (simulation_speed>10) simulation_speed = 10;
       if (paused)
       {
-        if (!landed) glutIdleFunc(update_lander_state);
+        if (!Landed) glutIdleFunc(update_lander_state);
         paused = false;
       }
     }
@@ -2261,7 +2268,7 @@ void glut_special (int key, int x, int y)
     }
     break;
   }
-  if (paused || landed) refresh_all_subwindows();
+  if (paused || Landed) refresh_all_subwindows();
 }
 
 void glut_key (unsigned char k, int x, int y)
@@ -2336,7 +2343,7 @@ void glut_key (unsigned char k, int x, int y)
 
   case 'a': case 'A':
     // a or A - autopilot
-    if (!landed) autopilot_enabled = !autopilot_enabled;
+    if (!Landed) autopilot_enabled = !autopilot_enabled;
     if (paused) refresh_all_subwindows();
     break;
 
@@ -2351,7 +2358,7 @@ void glut_key (unsigned char k, int x, int y)
       orbital_zoom = 0.4;
     }
     set_orbital_projection_matrix();
-    if (paused || landed) refresh_all_subwindows();
+    if (paused || Landed) refresh_all_subwindows();
     break;
   
   case 'l': case 'L':
@@ -2359,37 +2366,37 @@ void glut_key (unsigned char k, int x, int y)
     static_lighting = !static_lighting;
     glutSetWindow(orbital_window); enable_lights();
     glutSetWindow(closeup_window); enable_lights();
-    if (paused || landed) refresh_all_subwindows();
+    if (paused || Landed) refresh_all_subwindows();
     break;
 
   case 't': case 'T':
     // t or T - terrain texture
     do_texture = !do_texture;
     if (!texture_available) do_texture = false;
-    if (paused || landed) refresh_all_subwindows();
+    if (paused || Landed) refresh_all_subwindows();
     break;
 
   case 'p': case 'P':
     // p or P - deploy parachute
-    if (!autopilot_enabled && !landed && (parachute_status == NOT_DEPLOYED)) parachute_status = DEPLOYED;
-    if (autopilot_enabled && !landed) AUTO_NEXT = PROPORTIONALLANDING;
+    if (!autopilot_enabled && !Landed && (parachute_status == NOT_DEPLOYED)) parachute_status = DEPLOYED;
+    if (autopilot_enabled && !Landed) AUTO_NEXT = PROPORTIONALLANDING;
     if (paused) refresh_all_subwindows();
     break;
 
   case 's': case 'S':
     // s or S - attitude stabilizer
-    if (!autopilot_enabled && !landed) stabilized_attitude = !stabilized_attitude;
-    if (autopilot_enabled && !landed) AUTO_NEXT = SUICIDELANDING;
+    if (!autopilot_enabled && !Landed) stabilized_attitude = !stabilized_attitude;
+    if (autopilot_enabled && !Landed) AUTO_NEXT = SUICIDELANDING;
     if (paused) refresh_all_subwindows();
     break;
   
   case 'o': case 'O':
-    if (autopilot_enabled && !landed) AUTO_NEXT = CIRCULARISEORBIT;
+    if (autopilot_enabled && !Landed) AUTO_NEXT = CIRCULARISEORBIT;
     break;
 
   case 'c': case 'C':
     done &= !ORBITCHANGECALCDONE;
-    if (autopilot_enabled && !landed)
+    if (autopilot_enabled && !Landed)
     {
       TakingInput = true;
       AUTO_NEXT = CUSTOMORBIT;
@@ -2444,21 +2451,22 @@ void glut_key (unsigned char k, int x, int y)
     break;
 
   case 'u': case 'U':
-    if (!autopilot_enabled && !landed)
+    if (!autopilot_enabled && !Landed)
     {
       RotationAngle += 0.05;
     }
     break;
 
   case 'j': case 'J':
-    if (!autopilot_enabled && !landed)
+    if (!autopilot_enabled && !Landed)
     {
       RotationAngle -= 0.05;
     }
     break;
 
   case 'm': case 'M':
-    if (MoonSelected) MoonSelected = false;
+    if (MoonSelected) { MoonSelected = false; LanderSelected = true; }
+    else if (LanderSelected) { LanderSelected = false; MoonSelected = false; }
     else MoonSelected = true;
     break;
 
@@ -2466,7 +2474,7 @@ void glut_key (unsigned char k, int x, int y)
     // space bar
     simulation_speed = 0;
     glutIdleFunc(NULL);
-    if (paused && !landed) update_lander_state();
+    if (paused && !Landed) update_lander_state();
     else refresh_all_subwindows();
     paused = true;
     break;

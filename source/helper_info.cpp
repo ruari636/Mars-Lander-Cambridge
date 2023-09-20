@@ -1,7 +1,20 @@
 #include "helper_info.h"
 
 extern int main_window, closeup_window, orbital_window, instrument_window, view_width, view_height, win_width, win_height;
-extern double FuelToBurn;
+int curYpos;
+double EnergyToBurn;
+double StartTimer;
+double StopTimer;
+double EstimatedTimeToBurnSuicideSave;
+
+void glut_print_helper (float x, float y, string s)
+  // Prints string at location (x,y) in a bitmap font
+{
+  unsigned short i;
+
+  glRasterPos2f(x, y);
+  for (i = 0; i < s.length(); i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, s[i]);
+}
 
 void NothingToShow()
 {}
@@ -46,23 +59,82 @@ void DisplayTransferStatus()
 {
   extern double AngleToStartBurn;
   double AngFunc = CalculateAngleXY(position, vector3d(), MoonPos);
-  int curYpos = TEXTSTARTY;
 
   if (!InsufficientFuelText())
   {
-    glut_print(TEXTSTARTX, view_height-curYpos, "Relative Angle to Start Transfer - " + to_string(AngleToStartBurn)); curYpos += TEXTGAP;
-    glut_print(TEXTSTARTX, view_height-curYpos, "Current Angle - " + to_string(AngFunc)); curYpos += TEXTGAP;
-    glut_print(TEXTSTARTX, view_height-curYpos, "Fuel to Burn - " + to_string(abs(FuelToBurn))); curYpos += TEXTGAP;
+    glut_print_helper(TEXTSTARTX, view_height-curYpos, "Relative Angle to Start Transfer - " + to_string(AngleToStartBurn)); curYpos += TEXTGAPHELP;
+    glut_print_helper(TEXTSTARTX, view_height-curYpos, "Current Angle - " + to_string(AngFunc)); curYpos += TEXTGAPHELP;
+    glut_print_helper(TEXTSTARTX, view_height-curYpos, "Fuel to Burn - " + to_string(abs(FuelToBurn))); curYpos += TEXTGAPHELP;
   }
+}
+
+void KEandEstimatedSuicideBurnWork()
+{
+    if (SuicideBurnStarted)
+    {
+        if (!TimerStarted)
+        {
+            StartTimer = simulation_time;
+        }
+        TimerStarted = true;
+    }
+    if (!Landed || TimerStopped)
+    {
+        glut_print_helper(TEXTSTARTX, view_height-curYpos, "Current KE : ");
+        glut_print_helper(TEXTSTARTX + 400, view_height-curYpos, to_string((int)KE)); curYpos += TEXTGAPHELP;
+        if (Altitude < MAXSUICIDEBURNCHECKHEIGHT * 2)
+        {
+            glut_print_helper(TEXTSTARTX, view_height-curYpos, "Estimated resistive work available : ");
+            glut_print_helper(TEXTSTARTX + 400, view_height-curYpos,
+                                 to_string((int)EnergyToBurn)); curYpos += TEXTGAPHELP;
+            if (!TimerStarted)
+            {
+                if (Altitude < MAXSUICIDEBURNCHECKHEIGHT) {
+                    glut_print_helper(TEXTSTARTX, view_height-curYpos, "Estimated time to landing : "); 
+                    glut_print_helper(TEXTSTARTX + 400, view_height-curYpos, to_string(EstimatedTimeToBurnSuicide)); curYpos += TEXTGAPHELP; 
+                }
+                EstimatedTimeToBurnSuicideSave = EstimatedTimeToBurnSuicide;
+            }
+            else
+            {
+                    glut_print_helper(TEXTSTARTX, view_height-curYpos, "Estimated time to landing : "); 
+                    glut_print_helper(TEXTSTARTX + 400, view_height-curYpos, to_string(EstimatedTimeToBurnSuicideSave)); curYpos += TEXTGAPHELP;                
+            }
+        }
+        if (TimerStarted)
+        {
+            glut_print_helper(TEXTSTARTX, view_height-curYpos, "Time since suicide burn started : ");
+            glut_print_helper(TEXTSTARTX + 400, view_height-curYpos,
+                                 to_string(simulation_time - StartTimer)); curYpos += TEXTGAPHELP;
+        }
+        if (TimerStopped)
+        {
+            glut_print_helper(TEXTSTARTX, view_height-curYpos, "Time since suicide burn : ");
+            glut_print_helper(TEXTSTARTX + 400, view_height-curYpos,
+                                 to_string(StopTimer - StartTimer)); curYpos += TEXTGAPHELP;
+        }
+    }
+    else
+    {
+        if (!TimerStopped)
+        {
+            StopTimer = simulation_time;
+        }
+        TimerStopped = true;
+        TimerStarted = false;
+    }
 }
 
 VoidFunction HelpfulInformation(COPILOT_ACTION CurrentAction)
 {
+    curYpos = TEXTSTARTY;
     switch (CurrentAction)
     {
         case GOTOMOON: case BIIMPULSIVEMOONTRANSFER:
             return DisplayTransferStatus;
             break;
+        case SUICIDELANDING:
+            return KEandEstimatedSuicideBurnWork;
         default:
             return NothingToShow;
     }

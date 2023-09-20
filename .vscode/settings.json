@@ -57,6 +57,7 @@
   "C_Cpp_Runner.useLinkTimeOptimization": false,
   "files.associations": {
     "random": "cpp",
-    "cmath": "cpp"
+    "cmath": "cpp",
+    "string_view": "cpp"
   }
 }
