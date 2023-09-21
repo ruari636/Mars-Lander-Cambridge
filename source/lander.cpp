@@ -32,6 +32,7 @@ bool MoonGravityEnabled;
 double MoonDistance;
 double Altitude;
 double DistanceFromMostImportantMass;
+double LocalRadius;
 
 void autopilot (void)
 {
@@ -87,7 +88,7 @@ void autopilot (void)
         extern bool HeightsUpdated;
         if (HeightsUpdated)
         {
-          ChangePerigee(2.0E6 + MARS_RADIUS);
+          ChangeApogee(2.0E6 + MARS_RADIUS);
         }
         break;
 
@@ -120,6 +121,7 @@ void numerical_dynamics (void)
   MarsSphereOfInfluence = FGravMars.abs2() > FGravMoon.abs2();
   MostImportantMass = MarsSphereOfInfluence ? MARS_MASS:MOONMASS;
   Altitude = MarsSphereOfInfluence ? MarsAltitude:MoonAltitude;
+  LocalRadius = MarsSphereOfInfluence ? MARS_RADIUS:MOONRADIUS;
   DistanceFromMostImportantMass = MarsSphereOfInfluence ?  + MARS_RADIUS:MoonAltitude + MOONRADIUS;
 
   FDragLander = pow(LANDER_SIZE, 2) * DRAGCONSTANT(DRAG_COEF_LANDER) * VELCONSTANT;

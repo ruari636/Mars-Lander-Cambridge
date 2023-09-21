@@ -212,14 +212,13 @@ void MoveToOrbitInPlane(double NextApogee, double NextPerigee) // This is done a
             if ((done & NEXTAPOGEEMET) == 0)
             {
                 ChangeApogee(NextApogee);
-                Greatest_Height = NextApogee;
             }
             else if ((done & NEXTPERIGEEMET) == 0)
             {
                 ChangePerigee(NextPerigee);
             }
         }
-        else
+        else if (NextApogee <= Greatest_Height)
         {
             if ((done & NEXTPERIGEEMET) == 0)
             {

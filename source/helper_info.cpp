@@ -23,6 +23,15 @@ void glut_print_helper (float x, float y, string s)
   for (i = 0; i < s.length(); i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, s[i]);
 }
 
+void glut_print_helper_medium (float x, float y, string s)
+  // Prints string at location (x,y) in a bitmap font
+{
+  unsigned short i;
+
+  glRasterPos2f(x, y);
+  for (i = 0; i < s.length(); i++) glutBitmapCharacter(GLUT_BITMAP_9_BY_15, s[i]);
+}
+
 void NothingToShow()
 {}
 
@@ -140,27 +149,27 @@ void display_input_interface (void)
     glut_print_helper(TEXTSTARTX, view_height-curYpos, "Press R to add radius of body to inputs");
     if (RadiusAdded) { glut_print_helper(TEXTSTARTX, view_height-curYpos - TEXTGAPHELP, "Radius Included"); }
 
-    glut_print(curXpos, TEXTSTARTY + NEWLINE, "New Apogee Alt: ");
-    glut_print(curXpos + 5, TEXTSTARTY, " .");
+    glut_print_helper_medium(curXpos, TEXTSTARTY + NEWLINE, "New Apogee Alt: ");
+    glut_print_helper_medium(curXpos + 5, TEXTSTARTY, " .");
     for (int i = 0; i < INPUTRESOLUTION; i++)
     {
-        glut_print(curXpos, TEXTSTARTY, to_string(CustomOrbitInput[i]));
+        glut_print_helper_medium(curXpos, TEXTSTARTY, to_string(CustomOrbitInput[i]));
         curXpos += 15;
     }
-    glut_print(curXpos, TEXTSTARTY, "x10 " + to_string(CustomOrbitInput[INPUTRESOLUTION]));
+    glut_print_helper_medium(curXpos, TEXTSTARTY, "x10 " + to_string(CustomOrbitInput[INPUTRESOLUTION]));
 
     curXpos += 90;
-    glut_print(curXpos, TEXTSTARTY + NEWLINE, "New Perigee Alt: ");
-    glut_print(curXpos + 5, TEXTSTARTY, " .");
+    glut_print_helper_medium(curXpos, TEXTSTARTY + NEWLINE, "New Perigee Alt: ");
+    glut_print_helper_medium(curXpos + 5, TEXTSTARTY, " .");
     for (int i = INPUTRESOLUTION + 1; i < 2 * INPUTRESOLUTION + 1; i++)
     {
-        glut_print(curXpos, TEXTSTARTY, to_string(CustomOrbitInput[i]));
+        glut_print_helper_medium(curXpos, TEXTSTARTY, to_string(CustomOrbitInput[i]));
         curXpos += 15;
     }
-    glut_print(curXpos, TEXTSTARTY, "x10 " + to_string(CustomOrbitInput[2 * INPUTRESOLUTION + 1]));
+    glut_print_helper_medium(curXpos, TEXTSTARTY, "x10 " + to_string(CustomOrbitInput[2 * INPUTRESOLUTION + 1]));
 
     curXpos += 30;
-    glut_print(TEXTSTARTX, TEXTSTARTY + NEWLINE * 2, "Press e to enter and input values, press x to cancel");
+    glut_print_helper_medium(TEXTSTARTX, TEXTSTARTY + NEWLINE * 2, "Press e to enter and input values, press x to cancel");
 }
 
 void display_dev_info()
@@ -169,6 +178,15 @@ void display_dev_info()
     extern double VelAim;
     glut_print(TEXTSTARTX, TEXTSTARTY - curYpos, "velocity : " + to_string(velocity.abs())); curYpos += NEWLINE;
     glut_print(TEXTSTARTX, TEXTSTARTY - curYpos, "velocity aim : " + to_string(VelAim)); curYpos += NEWLINE;
+}
+
+void CustomOrbitInfo()
+{
+    int curYpos = TEXTSTARTY;
+    glut_print_helper(TEXTSTARTX, view_height - curYpos, "Input Apogee : " + to_string(InputApogee)); curYpos += NEWLINE;
+    glut_print_helper(TEXTSTARTX, view_height - curYpos, "Input Perigee : " + to_string(InputPerigee)); curYpos += NEWLINE;
+    glut_print_helper(TEXTSTARTX, view_height - curYpos, "Max Altitude : " + to_string(InputApogee - LocalRadius)); curYpos += NEWLINE;
+    glut_print_helper(TEXTSTARTX, view_height - curYpos, "Min Altitude : " + to_string(InputPerigee - LocalRadius)); curYpos += NEWLINE;
 }
 
 VoidFunction HelpfulInformation(COPILOT_ACTION CurrentAction)
@@ -185,6 +203,8 @@ VoidFunction HelpfulInformation(COPILOT_ACTION CurrentAction)
             return display_input_interface;
         case DEBUGHELPER:
             return display_dev_info;
+        case CUSTOMORBIT:
+            return CustomOrbitInfo;
         default:
             return NothingToShow;
     }

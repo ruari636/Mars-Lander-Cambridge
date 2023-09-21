@@ -1142,7 +1142,7 @@ void draw_orbital_window (void)
 
   // Help information
   if (help) display_help_text();
-  else HelperInfoDrawer(HelpfulInformation(AUTO_NEXT));
+  else if (autopilot_enabled) HelperInfoDrawer(HelpfulInformation(AUTO_NEXT));
   
   glutSwapBuffers();
 }
@@ -2173,7 +2173,7 @@ void glut_special (int key, int x, int y)
     if (AUTO_NEXT == TAKINGINPUT)
     {
       CustomOrbitInput[CurrentSelection]--;
-      if (CurrentSelection < INPUTRESOLUTION || (CurrentSelection > INPUTRESOLUTION + 1 && CurrentSelection < 2 * INPUTRESOLUTION + 1))
+      if (CurrentSelection != INPUTRESOLUTION && CurrentSelection != INPUTRESOLUTION * 2 + 1)
       {
         CustomOrbitInput[CurrentSelection] = min(9, CustomOrbitInput[CurrentSelection]);
         CustomOrbitInput[CurrentSelection] = max(0, CustomOrbitInput[CurrentSelection]);
@@ -2370,12 +2370,13 @@ void glut_key (unsigned char k, int x, int y)
       }
       for (int i = INPUTRESOLUTION + 1; i < 2 * INPUTRESOLUTION + 1; i++)
       {
-        InputApogee += CustomOrbitInput[i] * pow(10.0, CustomOrbitInput[2 * INPUTRESOLUTION + 1] - i);
+        InputPerigee += CustomOrbitInput[i] * pow(10.0, CustomOrbitInput[2 * INPUTRESOLUTION + 1] - i + 
+                                                  INPUTRESOLUTION + 1);
       }
       if (RadiusAdded)
       {
-        InputApogee += MARS_RADIUS;
-        InputPerigee += MARS_RADIUS;
+        InputApogee += LocalRadius;
+        InputPerigee += LocalRadius;
       }
       AUTO_NEXT = CUSTOMORBIT;
     }

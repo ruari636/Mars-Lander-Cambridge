@@ -181,6 +181,7 @@ extern double MostImportantMass;
 extern double Altitude;
 extern double orbital_zoom;
 extern double DistanceFromMostImportantMass;
+extern double LocalRadius;
 
 //********************************************************************//
 
