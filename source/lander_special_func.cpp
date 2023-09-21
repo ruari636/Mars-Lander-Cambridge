@@ -1,6 +1,7 @@
 #include "lander_special_func.h"
 
 extern vector3d FGravMars;
+extern vector3d FGravMoon;
 extern vector3d FDragLander;
 extern vector3d FDragChute;
 extern double climb_speed;
@@ -112,9 +113,20 @@ void AutoDeployParachuteWhenReady()
     }
 }
 
-bool WithinError(double x0, double x1)
+bool DistancesWithinError(double x0, double x1)
 {
-    return x1 < x0 * 1.01 && x1 > x0 * 0.99;
+    double Error = 1.01;
+    double OrbitTime = 0.0;
+    if (HeightsUpdated) { OrbitTime = KeplerPeriod((Greatest_Height + Lowest_Height) / 2.0); }
+    if (MarsSphereOfInfluence)
+    {
+        Error += (FGravMoon.abs() * OrbitTime * OrbitTime) / (x0 + x1);
+    }
+    else
+    {
+        Error += (FGravMars.abs() * OrbitTime * OrbitTime) / (x0 + x1);
+    }
+    return x1 < x0 * Error && x1 > x0 / Error;
 }
 
 void UpdateHeights()
@@ -125,7 +137,7 @@ void UpdateHeights()
                                                                    // also due to orbital mechanics, when deorbiting the altitude can increase for a bit so an extra check was added
    {
         done |= LOWESTHEIGHTMEASUREDMASK;
-        if (!WithinError(Lowest_Height, position.abs()))
+        if (!DistancesWithinError(Lowest_Height, position.abs()))
         {
             HeightsUpdated = false;
             done &= !LOWESTHEIGHTMEASUREDMASK;
@@ -135,7 +147,7 @@ void UpdateHeights()
    else if (descending && !previous_descending)                    // we have just gone past the highest point in the orbit, measure it
    {
         done |= GREATESTHEIGHTMEASUREDMASK;
-        if (!WithinError(Greatest_Height, position.abs()))
+        if (!DistancesWithinError(Greatest_Height, position.abs()))
         {
             HeightsUpdated = false;
             done &= !GREATESTHEIGHTMEASUREDMASK;

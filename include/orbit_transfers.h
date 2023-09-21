@@ -39,6 +39,8 @@ void MoveToOrbitInPlane(double NextApogee, double NextPerigee);
 
 double CalculateAngleXY(const vector3d& A, const vector3d& B, const vector3d& C);
 
+double KeplerPeriod(double SemiMajorAxis);
+
 void ApproachMoon();
 
 void PreventMoonEscape();

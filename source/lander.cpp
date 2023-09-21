@@ -165,7 +165,7 @@ void initialize_simulation (void)
   AUTO_NEXT = DONOTHING;
   RotationAngle = 0.0;
   CurrentSelection = 0;
-  MoonGravityEnabled = false;
+  MoonGravityEnabled = true;
   MoonDistance = 20 * MARS_RADIUS;
   orbital_zoom = 0.15;
   // The parameters to set are:
