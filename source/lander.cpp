@@ -33,6 +33,7 @@ double MoonDistance;
 double Altitude;
 double DistanceFromMostImportantMass;
 double LocalRadius;
+double MoonApproachPerigee;
 
 void autopilot (void)
 {
@@ -71,9 +72,12 @@ void autopilot (void)
 
       case (BIIMPULSIVEMOONTRANSFER):
         ApproachMoon();
-        if (MoonApproachStarted && (!OrbitChangeBurn || (done & MOONAPROACHBURNFINISHED) == MOONAPROACHBURNFINISHED))
+        MoonApproachPerigee = HyperbolicPerigee();
+        if ((MoonApproachStarted && !OrbitChangeBurn) || (done & MOONAPROACHBURNFINISHED) == MOONAPROACHBURNFINISHED)
         {
+          
           done |= MOONAPROACHBURNFINISHED; // status of Orbit_ChangeBurn will change once we start burning in here, hence the done flag
+          MoonApproachStarted = false;
           if (MoonAltitude < (MOONRADIUS + EXOSPHERE) * 1.2 && !MarsSphereOfInfluence) // We are close and Moon gravity is stronger than Mars gravity
           {
             if ((done & MOONESCAPEPREVENTED) != MOONESCAPEPREVENTED) PreventMoonEscape(); // brings us into a reasonably stable moon orbit
@@ -104,6 +108,7 @@ vector3d FDragLander;
 vector3d FDragChute;
 vector3d Thrust;
 vector3d acceleration;
+vector3d MoonVel;
 double RotationAngle;
 
 void numerical_dynamics (void)
@@ -111,6 +116,8 @@ void numerical_dynamics (void)
   // lander's pose. The time step is delta_t (global variable).
 {
   MoonPos = {-MoonDistance * sin(MOONOMEGA * simulation_time), MoonDistance * cos(MOONOMEGA * simulation_time), 0.0};
+  MoonVel = {-MoonDistance * MOONOMEGA * cos(MOONOMEGA * simulation_time), 
+             -MoonDistance * MOONOMEGA * sin(MOONOMEGA * simulation_time), 0.0};
   MoonRelPos = MoonPos - position;  
 
   FGravMars = -position.norm() * ((MARS_MASS * LANDERMASS * GRAVITY) / (position.abs2()));

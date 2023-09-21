@@ -43,6 +43,8 @@ double KeplerPeriod(double SemiMajorAxis);
 
 void ApproachMoon();
 
+double HyperbolicPerigee();
+
 void PreventMoonEscape();
 
 #endif

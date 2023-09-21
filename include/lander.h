@@ -175,6 +175,7 @@ extern int CurrentSelection;
 extern double InputApogee;
 extern double InputPerigee;
 extern vector3d MoonPos;
+extern vector3d MoonVel;
 extern vector3d MoonRelPos;
 extern bool MoonGravityEnabled;
 extern double MostImportantMass;

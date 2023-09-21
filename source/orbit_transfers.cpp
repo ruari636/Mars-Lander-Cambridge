@@ -281,6 +281,19 @@ void ApproachMoon()
     }
 }
 
+double SpecificOrbitalEnergy()
+{
+    return velocity.abs2() - (GRAVITY * MostImportantMass / position.abs());
+}
+
+double HyperbolicPerigee()
+{
+    double V_inf = (velocity - MoonVel).abs();
+    double a = -MostImportantMass * GRAVITY / (2.0 * V_inf * V_inf);
+    double e = 1 + (position.abs() * V_inf * V_inf) / (GRAVITY * MostImportantMass);    
+    return a / (e - 1);
+}
+
 bool EscapePrevented = false;
 void PreventMoonEscape()
 {
