@@ -15,6 +15,7 @@ lander: $(LANDER_OBJ_FILES)
 	@if [ "${PLATFORM}" = "Linux" ]; \
 	then \
 		$(CC) -o lander $(LANDER_OBJ_FILES) ${CCSW} -lGL -lGLU -lglut; \
+		echo Build Complete; \
 		echo Linking for Linux; \
 	else \
 		echo "Unable to make outside of Linux"; \
@@ -23,7 +24,8 @@ lander: $(LANDER_OBJ_FILES)
 $(LANDER_OBJ_FILES): $(LANDER_INC_FILES)
 
 $(OBJ_LOCATION)/%.o: $(SRC_LOCATION)/%.cpp | $(OBJ_LOCATION)  # Rule for creating object files
-	$(CC) ${CCSW} -I$(INC_LOCATION) -c $< -o $@
+	@echo building $<
+	$(CC) ${CCSW} -I $(INC_LOCATION) -c $< -o $@
 
 $(OBJ_LOCATION):
 	mkdir -p $(OBJ_LOCATION)
@@ -32,6 +34,6 @@ $(OBJ_LOCATION):
 	$(CC) ${CCSW} -c $<
 
 clean:
-	echo cleaning up; /bin/rm -f lander -r outputs
+	@echo cleaning up; /bin/rm -f lander -r outputs
 
 .PHONY: all clean  # Declare targets as phony to ensure they are always executed

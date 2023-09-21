@@ -9,8 +9,6 @@
 #define MOONAPROACHBURNFINISHED 0x0020
 #define MOONESCAPEPREVENTED 0x0040
 
-#define MOONAPROACHAPOGEE (MoonDistance + 5 * MOONRADIUS)
-
 extern bool MoonApproachStarted;
 
 void InitialiseOrbitTransfers();
@@ -21,7 +19,7 @@ double calculateNewVApogee(double Apogee, double NewPerigee);
 
 double calculateNewVPerigee(double Perigee, double NewApogee);
 
-double rocketEquationForFuel(double deltaV); // returns how much fuel to burn
+double rocketEquationForFuel(double v2, double v1);
 
 double calculateFuelBurnedForNewPerigee(double Apogee, double Perigee, double NewPerigee);
 

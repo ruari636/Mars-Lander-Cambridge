@@ -28,11 +28,10 @@ int CustomOrbitInput [2 * INPUTRESOLUTION + 2] = { 0 }; // extra two spaces are 
 int CurrentSelection;
 double InputApogee;
 double InputPerigee;
-bool TakingInput;
 bool MoonGravityEnabled;
 double MoonDistance;
-double MoonDistInitial = 15 * MARS_RADIUS;
 double Altitude;
+double DistanceFromMostImportantMass;
 
 void autopilot (void)
 {
@@ -43,24 +42,23 @@ void autopilot (void)
     switch (AUTO_NEXT)
     {
       case (PROPORTIONALLANDING):
-        FaceDirection(velocity.norm());
+        FaceDirection(-velocity.norm());
         Deorbit();
         LandProportional();
         break;
 
       case (SUICIDELANDING):
-        FaceDirection(velocity.norm());
+        FaceDirection(-velocity.norm());
         Deorbit();
         LandSuicide();
         break;
 
       case (CIRCULARISEORBIT): // Does the most efficient orbit circularisation by raising perigee from apogee
-        FaceDirection(-velocity.norm());
         CirculariseCurrentOrbit();
         break;
 
       case (CUSTOMORBIT):
-        if (!TakingInput)
+        if (!(AUTO_NEXT == TAKINGINPUT))
         {
           MoveToOrbitInPlane(InputApogee, InputPerigee); // Does a Hoffman transfer when data has been collected
         }
@@ -114,12 +112,13 @@ void numerical_dynamics (void)
   MarsSphereOfInfluence = FGravMars.abs2() > FGravMoon.abs2();
   MostImportantMass = MarsSphereOfInfluence ? MARS_MASS:MOONMASS;
   Altitude = MarsSphereOfInfluence ? MarsAltitude:MoonAltitude;
+  DistanceFromMostImportantMass = MarsSphereOfInfluence ?  + MARS_RADIUS:MoonAltitude + MOONRADIUS;
 
   FDragLander = pow(LANDER_SIZE, 2) * DRAGCONSTANT(DRAG_COEF_LANDER) * VELCONSTANT;
   FDragChute = pow(LANDER_SIZE * 2, 2) * 5 * DRAGCONSTANT(DRAG_COEF_CHUTE) * VELCONSTANT;
   Thrust = thrust_wrt_world();
   acceleration = (FGravMars + FGravMoon + FDragLander + Thrust) / (double)LANDERMASS;
-  FaceDirection(VecAtAngleToPosInPlane(RotationAngle));
+  FaceDirection(-VecAtAngleToPosInPlane(RotationAngle));
 
 #if defined(USEVERLET)
   if (simulation_time == 0)
@@ -155,10 +154,9 @@ void initialize_simulation (void)
   ResetHelperInfo();
   AUTO_NEXT = DONOTHING;
   RotationAngle = 0.0;
-  TakingInput = false;
   CurrentSelection = 0;
-  MoonGravityEnabled = true;
-  double MoonDistInitial = 20 * MARS_RADIUS;
+  MoonGravityEnabled = false;
+  MoonDistance = 20 * MARS_RADIUS;
   orbital_zoom = 0.15;
   // The parameters to set are:
   // position - in Cartesian planetary coordinate system (m)
@@ -181,14 +179,14 @@ void initialize_simulation (void)
 
   case 0:
     // a circular equatorial orbit
-    position = vector3d(1.2*MARS_RADIUS, 0.0, 0.0);
-    velocity = vector3d(0.0, 3247.087385863725, 0.0);
+    position = vector3d(1.2*MARS_RADIUS * 1, 0.0, 0.0);
+    velocity = vector3d(0.0, 3247.087385863725 * pow(1, -0.5), 0.0);
     orientation = vector3d(0.0, 90.0, 0.0);
     delta_t = 0.1;
     parachute_status = NOT_DEPLOYED;
     stabilized_attitude = false;
     autopilot_enabled = false;
-    MoonDistInitial = 36000000;
+    MoonDistance = 36000000;
     orbital_zoom = 0.22;
     break;
 
@@ -269,7 +267,6 @@ void initialize_simulation (void)
   }
   Lowest_Height = position.abs();
   Greatest_Height = position.abs();
-  MoonDistance = MoonDistInitial;
   set_orbital_projection_matrix();
   refresh_all_subwindows();
 }

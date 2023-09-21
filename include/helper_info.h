@@ -16,7 +16,10 @@ extern bool SuicideBurnStarted;
 extern bool Landed;
 extern double EnergyToBurn;
 static bool TimerStarted = false;
-static bool TimerStopped = false;;
+static bool TimerStopped = false;
+extern bool RadiusAdded;
+
+extern double ApogeeHeight;
 
 typedef void (*VoidFunction)();
 

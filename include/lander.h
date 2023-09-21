@@ -90,6 +90,7 @@
 #define MOONRADIUS MARS_RADIUS * MOONRADIUSRATIO
 #define MOONMASS MARS_MASS * MOONRADIUSRATIO * MOONRADIUSRATIO * MOONRADIUSRATIO * 0.7
 #define MOONOMEGA sqrt(MARS_MASS * GRAVITY / (pow(MoonDistance, 3.0)))
+#define DEFAULTMOONDISTANCE 20 * MARS_RADIUS
 
 using namespace std;
 
@@ -156,6 +157,7 @@ enum COPILOT_ACTION
   PROPORTIONALLANDING,
   SUICIDELANDING,
   CIRCULARISEORBIT,
+  TAKINGINPUT,
   CUSTOMORBIT,
   GOTOMOON,
   BIIMPULSIVEMOONTRANSFER,
@@ -174,10 +176,10 @@ extern double InputPerigee;
 extern vector3d MoonPos;
 extern vector3d MoonRelPos;
 extern bool MoonGravityEnabled;
-extern double MoonDistInitial;
 extern double MostImportantMass;
 extern double Altitude;
 extern double orbital_zoom;
+extern double DistanceFromMostImportantMass;
 
 //********************************************************************//
 
@@ -213,7 +215,6 @@ unsigned long long time_program_started;
 extern COPILOT_ACTION AUTO_NEXT;
 extern COPILOT_ACTION TEMPCOMMAND;
 extern double RotationAngle;
-extern bool TakingInput;
 extern double MoonDistance;
 double MoonDistTemp;
 double MoonAltitude;

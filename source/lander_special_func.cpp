@@ -39,7 +39,7 @@ void FaceDirection(vector3d dir)
   vector3d up, left, out;
   double m[16];
 
-  up = -dir.norm(); // this is the direction we want the lander's nose to point in
+  up = dir.norm(); // this is the direction we want the lander's nose to point in
 
   // !!!!!!!!!!!!! HINT TO STUDENTS ATTEMPTING THE EXTENSION EXERCISES !!!!!!!!!!!!!!
   // For any-angle attitude control, we just need to set "up" to something different,
@@ -121,25 +121,26 @@ void UpdateHeights()
 {
    previous_descending = descending;
    descending = signbit(climb_speed);
-   if (!descending && previous_descending) // we have just gone past the lowest point in the orbit, measure it
+   if (!descending && previous_descending && Altitude > EXOSPHERE) // we have just gone past the lowest point in the orbit, measure it
+                                                                   // also due to orbital mechanics, when deorbiting the altitude can increase for a bit so an extra check was added
    {
-        Lowest_Height = position.abs();
         done |= LOWESTHEIGHTMEASUREDMASK;
         if (!WithinError(Lowest_Height, position.abs()))
         {
             HeightsUpdated = false;
             done &= !LOWESTHEIGHTMEASUREDMASK;
         }
+        Lowest_Height = position.abs();
    }
-   else if (descending && !previous_descending) // we have just gone past the highest point in the orbit, measure it
+   else if (descending && !previous_descending)                    // we have just gone past the highest point in the orbit, measure it
    {
-        Greatest_Height = position.abs();
         done |= GREATESTHEIGHTMEASUREDMASK;
         if (!WithinError(Greatest_Height, position.abs()))
         {
             HeightsUpdated = false;
             done &= !GREATESTHEIGHTMEASUREDMASK;
         }
+        Greatest_Height = position.abs();
    }
    if (done & (LOWESTHEIGHTMEASUREDMASK + GREATESTHEIGHTMEASUREDMASK) == (LOWESTHEIGHTMEASUREDMASK + GREATESTHEIGHTMEASUREDMASK))
    {

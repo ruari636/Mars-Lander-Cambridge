@@ -6,6 +6,7 @@ double EnergyToBurn;
 double StartTimer;
 double StopTimer;
 double EstimatedTimeToBurnSuicideSave;
+bool RadiusAdded = true;
 
 void ResetHelperInfo()
 {
@@ -71,6 +72,7 @@ void DisplayTransferStatus()
     glut_print_helper(TEXTSTARTX, view_height-curYpos, "Relative Angle to Start Transfer - " + to_string(AngleToStartBurn)); curYpos += TEXTGAPHELP;
     glut_print_helper(TEXTSTARTX, view_height-curYpos, "Current Angle - " + to_string(AngFunc)); curYpos += TEXTGAPHELP;
     glut_print_helper(TEXTSTARTX, view_height-curYpos, "Fuel to Burn - " + to_string(abs(FuelToBurn))); curYpos += TEXTGAPHELP;
+    glut_print_helper(TEXTSTARTX, view_height-curYpos, "Apogee aimed for - " + to_string(ApogeeHeight)); curYpos += TEXTGAPHELP;
   }
 }
 
@@ -131,6 +133,36 @@ void KEandEstimatedSuicideBurnWork()
     }
 }
 
+void display_input_interface (void)
+{
+  int curXpos = TEXTSTARTX;  
+
+    glut_print_helper(TEXTSTARTX, view_height-curYpos, "Press R to add radius of body to inputs");
+    if (RadiusAdded) { glut_print_helper(TEXTSTARTX, view_height-curYpos - TEXTGAPHELP, "Radius Included"); }
+
+    glut_print(curXpos, TEXTSTARTY + NEWLINE, "New Apogee Alt: ");
+    glut_print(curXpos + 5, TEXTSTARTY, " .");
+    for (int i = 0; i < INPUTRESOLUTION; i++)
+    {
+        glut_print(curXpos, TEXTSTARTY, to_string(CustomOrbitInput[i]));
+        curXpos += 15;
+    }
+    glut_print(curXpos, TEXTSTARTY, "x10 " + to_string(CustomOrbitInput[INPUTRESOLUTION]));
+
+    curXpos += 90;
+    glut_print(curXpos, TEXTSTARTY + NEWLINE, "New Perigee Alt: ");
+    glut_print(curXpos + 5, TEXTSTARTY, " .");
+    for (int i = INPUTRESOLUTION + 1; i < 2 * INPUTRESOLUTION + 1; i++)
+    {
+        glut_print(curXpos, TEXTSTARTY, to_string(CustomOrbitInput[i]));
+        curXpos += 15;
+    }
+    glut_print(curXpos, TEXTSTARTY, "x10 " + to_string(CustomOrbitInput[2 * INPUTRESOLUTION + 1]));
+
+    curXpos += 30;
+    glut_print(TEXTSTARTX, TEXTSTARTY + NEWLINE * 2, "Press e to enter and input values, press x to cancel");
+}
+
 VoidFunction HelpfulInformation(COPILOT_ACTION CurrentAction)
 {
     curYpos = TEXTSTARTY;
@@ -141,6 +173,8 @@ VoidFunction HelpfulInformation(COPILOT_ACTION CurrentAction)
             break;
         case SUICIDELANDING:
             return KEandEstimatedSuicideBurnWork;
+        case TAKINGINPUT:
+            return display_input_interface;
         default:
             return NothingToShow;
     }

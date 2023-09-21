@@ -976,53 +976,6 @@ void display_help_text (void)
   glPopMatrix();
 }
 
-void display_input_interface (void)
-{
-  int curXpos = TEXTSTARTX;
-
-  glColor3f(1.0, 1.0, 1.0);
-
-  glMatrixMode(GL_PROJECTION);
-  glPushMatrix();
-  glLoadIdentity();
-  glOrtho(0, view_width, 0, view_height, -1.0, 1.0); 
-  glMatrixMode(GL_MODELVIEW);
-  glPushMatrix();
-  glLoadIdentity();
-  glDisable(GL_LIGHTING);
-  glDisable(GL_DEPTH_TEST);
-  
-
-  glut_print(curXpos, TEXTSTARTY + NEWLINE, "New Apogee Alt: ");
-  glut_print(curXpos + 5, TEXTSTARTY, " .");
-  for (int i = 0; i < INPUTRESOLUTION; i++)
-  {
-    glut_print(curXpos, TEXTSTARTY, to_string(CustomOrbitInput[i]));
-    curXpos += 15;
-  }
-  glut_print(curXpos, TEXTSTARTY, "x10 " + to_string(CustomOrbitInput[INPUTRESOLUTION]));
-
-  curXpos += 90;
-  glut_print(curXpos, TEXTSTARTY + NEWLINE, "New Perigee Alt: ");
-  glut_print(curXpos + 5, TEXTSTARTY, " .");
-  for (int i = INPUTRESOLUTION + 1; i < 2 * INPUTRESOLUTION + 1; i++)
-  {
-    glut_print(curXpos, TEXTSTARTY, to_string(CustomOrbitInput[i]));
-    curXpos += 15;
-  }
-  glut_print(curXpos, TEXTSTARTY, "x10 " + to_string(CustomOrbitInput[2 * INPUTRESOLUTION + 1]));
-
-  curXpos += 30;
-  glut_print(TEXTSTARTX, TEXTSTARTY + NEWLINE * 2, "Press e to enter and input values, press x to cancel");
-
-  glEnable(GL_LIGHTING);
-  glEnable(GL_DEPTH_TEST);
-  glMatrixMode(GL_PROJECTION);
-  glPopMatrix();
-  glMatrixMode(GL_MODELVIEW);
-  glPopMatrix();
-}
-
 void display_help_prompt (void)
   // Displays help prompt in the close-up view window
 {
@@ -1187,9 +1140,8 @@ void draw_orbital_window (void)
   glEnd();
   glEnable(GL_LIGHTING);
 
-  if (TakingInput) display_input_interface();
   // Help information
-  else if (help) display_help_text();
+  if (help) display_help_text();
   else HelperInfoDrawer(HelpfulInformation(AUTO_NEXT));
   
   glutSwapBuffers();
@@ -2198,7 +2150,7 @@ void glut_special (int key, int x, int y)
 {
   switch(key) {
   case GLUT_KEY_UP: // throttle up
-    if (TakingInput)
+    if (AUTO_NEXT == TAKINGINPUT)
     {
       CustomOrbitInput[CurrentSelection]++;
       if (CurrentSelection < INPUTRESOLUTION || (CurrentSelection > INPUTRESOLUTION + 1 && CurrentSelection < 2 * INPUTRESOLUTION + 1))
@@ -2218,7 +2170,7 @@ void glut_special (int key, int x, int y)
     }
     break;
   case GLUT_KEY_DOWN: // throttle down
-    if (TakingInput)
+    if (AUTO_NEXT == TAKINGINPUT)
     {
       CustomOrbitInput[CurrentSelection]--;
       if (CurrentSelection < INPUTRESOLUTION || (CurrentSelection > INPUTRESOLUTION + 1 && CurrentSelection < 2 * INPUTRESOLUTION + 1))
@@ -2238,7 +2190,7 @@ void glut_special (int key, int x, int y)
     }
     break;
   case GLUT_KEY_RIGHT: // faster simulation
-    if (TakingInput)
+    if (AUTO_NEXT == TAKINGINPUT)
     {
       CurrentSelection = min((int)(sizeof(CustomOrbitInput)/sizeof(int)) - 1, CurrentSelection + 1);
     }
@@ -2254,7 +2206,7 @@ void glut_special (int key, int x, int y)
     }
     break;
   case GLUT_KEY_LEFT: // slower simulation
-    if (TakingInput)
+    if (AUTO_NEXT == TAKINGINPUT)
     {
       CurrentSelection = max(0, CurrentSelection - 1);
     }
@@ -2400,13 +2352,12 @@ void glut_key (unsigned char k, int x, int y)
     done &= !ORBITCHANGECALCDONE;
     if (autopilot_enabled && !Landed)
     {
-      TakingInput = true;
-      AUTO_NEXT = CUSTOMORBIT;
+      AUTO_NEXT = TAKINGINPUT;
     }
     break;
   
   case 'e': case 'E':
-    if (AUTO_NEXT == CUSTOMORBIT)
+    if (AUTO_NEXT == TAKINGINPUT)
     {
       InputApogee = 0.0;
       InputPerigee = 0.0;
@@ -2418,9 +2369,12 @@ void glut_key (unsigned char k, int x, int y)
       {
         InputApogee += CustomOrbitInput[i] * pow(10.0, CustomOrbitInput[2 * INPUTRESOLUTION + 1] - i);
       }
-      InputApogee += MARS_RADIUS;
-      InputPerigee += MARS_RADIUS;
-      TakingInput = false;
+      if (RadiusAdded)
+      {
+        InputApogee += MARS_RADIUS;
+        InputPerigee += MARS_RADIUS;
+      }
+      AUTO_NEXT = CUSTOMORBIT;
     }
     break;
 
@@ -2429,27 +2383,27 @@ void glut_key (unsigned char k, int x, int y)
     break;
   
   case 'x': case 'X':
-    if (AUTO_NEXT = CUSTOMORBIT)
+    if (AUTO_NEXT = TAKINGINPUT)
     {
-      TakingInput = false;
       AUTO_NEXT = DONOTHING;
     }
     break;
 
   case 'r': case 'R':
-    fuel = 1.0;
+    if (AUTO_NEXT == TAKINGINPUT) { RadiusAdded = RadiusAdded ? false:true; }
+    else { fuel = 1.0; }
     break;
 
   case 'i': case 'I':
     MoonDistTemp = MoonDistance;
     MoonDistance *= 1.1;
-    if (MoonDistTemp < MoonDistInitial && MoonDistTemp >= 1.0/1.1 * MoonDistInitial) { MoonDistance = MoonDistInitial; }
+    if (MoonDistTemp < DEFAULTMOONDISTANCE && MoonDistTemp >= 1.0/1.1 * DEFAULTMOONDISTANCE) { MoonDistance = DEFAULTMOONDISTANCE; }
     break;
 
   case 'k': case 'K':
     MoonDistTemp = MoonDistance;
     MoonDistance *= 1.0/1.1;
-    if (MoonDistTemp > MoonDistInitial && MoonDistTemp <= 1.1 * MoonDistInitial) { MoonDistance = MoonDistInitial; }
+    if (MoonDistTemp > DEFAULTMOONDISTANCE && MoonDistTemp <= 1.1 * DEFAULTMOONDISTANCE) { MoonDistance = DEFAULTMOONDISTANCE; }
     break;
 
   case 'u': case 'U':

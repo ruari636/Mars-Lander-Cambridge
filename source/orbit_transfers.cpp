@@ -3,7 +3,6 @@
 extern bool HeightsUpdated;
 extern double MoonDistance;
 extern bool MarsSphereOfInfluence;
-int dir;
 int iterations = 0;
 double CircularOrbitVelocity = 0.0;
 double MostImportantMass;
@@ -12,6 +11,9 @@ bool MoonApproachStarted = false;
 double CurAngle;
 double AngleToStartBurn;
 double FuelToBurn;
+double ApogeeHeight;
+double VelStart;
+double VelAim;
 
 void InitialiseOrbitTransfers()
 {
@@ -35,44 +37,94 @@ void OrbitChangeBurner()
     }
 }
 
+void OrbitChangeBurnerVelIncrease()
+{
+    if (OrbitChangeBurn)
+    {
+        if (velocity.abs() < VelAim)
+        {
+            throttle = 1.0;
+        }
+        else
+        {
+            OrbitChangeBurn = false;
+            ClearHeights(); // New orbit, new heights
+            throttle = 0.0;
+        }
+    }
+}
+
+void OrbitChangeBurnerVelDecrease()
+{
+    if (OrbitChangeBurn)
+    {
+        if (velocity.abs() > VelAim)
+        {
+            throttle = 1.0;
+        }
+        else
+        {
+            OrbitChangeBurn = false;
+            ClearHeights(); // New orbit, new heights
+            throttle = 0.0;
+        }
+    }
+}
+
+void OrbitChangeBurnerVel()
+{
+    if (VelStart > VelAim)
+    {
+        FaceDirection(-velocity.norm());
+        OrbitChangeBurnerVelDecrease();
+    }
+    else
+    {
+        FaceDirection(velocity.norm());
+        OrbitChangeBurnerVelIncrease();
+    }
+}
+
 double calculateNewVApogee(double Apogee, double NewPerigee)
 {
-    return sqrt(GRAVITY * MostImportantMass * (2 * NewPerigee) / 
-                        (Apogee * (NewPerigee + Apogee)));
+    return sqrt(GRAVITY * MostImportantMass * (2 / Apogee - 1 / (0.5 * NewPerigee + 0.5 * Apogee)));
 }
 
 double calculateNewVPerigee(double Perigee, double NewApogee)
 {
-    return sqrt(GRAVITY * MostImportantMass * (2 * NewApogee) / 
-                        (Perigee * (NewApogee + Perigee)));
+    return sqrt(GRAVITY * MostImportantMass * (2 / Perigee - 1 / (0.5 * Perigee + 0.5 * NewApogee)));
 }
 
-double rocketEquationForFuel(double deltaV)
+double rocketEquationForFuel(double v2, double v1)
 {
-    // ln(m1/m2) * Vout = deltaV
-    // exp(deltaV/Vout) = m1/m2
-    // deltaM = fuelToBurn = m1(exp(-deltaV/Vout) - 1)
-    // m1 = LANDERMASS, m2 = LANDERMASS - fuelNeeded
-    // maxFuelForce / maxFuelBurnRate = impulsePerLitre
-    // impulseNeeded / impulsePerLitre = fuelNeeded
-    // thrust = dm/dt * Vout, Vout = maxThrust / fuelRateAtMaxThrust (kg/s)
-    double Vout = MAX_THRUST / (FUEL_RATE_AT_MAX_THRUST * FUEL_DENSITY);
-    double deltaM = LANDERMASS / exp(deltaV/Vout) - LANDERMASS;
-    return deltaM; // We want to know how much fuel to burn
+    // mv + F * deltaT = (m - mDelta)(v + vDelta)
+    // mDelta = deltaT * fuelRate (kg/s)
+    // mv + F * deltaT = (m - deltaT * fuelRate)(v + vDelta) = mv + mvDelta - deltaT * fuelRate * v - deltaT * fuelRate * vDelta
+    // F * deltaT = mvDelta - deltaT * fuelRate * v - deltaT * fuelRate * vDelta 
+    // (F + fuelRate * v + fuelRate * vDelta) * deltaT = mvDelta (next take limits/differential form)
+    // (F + fuelRate * v + fuelRate * dv) * dt = mdv = Fdt + fuelRate * v * dt + fuelRate * dvdt (next assume dvdt = 0)
+    // mdv = (F + fuelRate * v)dt
+    // dt = (m / (F + fuelRate * v))dv
+    // t2 - t1 = (m/fuelRate) * (ln(F + fuelRate * v2) - ln(F + fuelRate * v1))
+    // t2 - t1 = (m/fuelRate) * ln( (F + fuelRate * v2) / (F + fuelRate * v1) )
+    // fuelBurned = fuelRate(t2 - t1) = m * ln( (F + fuelRate * v2) / (F + fuelRate * v1) )
+    double fuelRate = (FUEL_RATE_AT_MAX_THRUST * FUEL_DENSITY);
+    double Mfinal = LANDERMASS * (log(MAX_THRUST + fuelRate * v2) - log(MAX_THRUST + fuelRate * v1));
+    return Mfinal; // return how much fuel to burn (if negative v2 < v1)
 }
 
 double calculateFuelBurnedForNewPerigee(double Apogee, double Perigee, double NewPerigee)
 {
     double v1 = calculateNewVApogee(Apogee, Perigee);
     double v2 = calculateNewVApogee(Apogee, NewPerigee);
-    return rocketEquationForFuel(v2 - v1);
+    return rocketEquationForFuel(v2, v1);
 }
 
 double calculateFuelBurnedForNewApogee(double Apogee, double Perigee, double NewApogee)
 {
     double v1 = calculateNewVPerigee(Perigee, Apogee);
     double v2 = calculateNewVPerigee(Perigee, NewApogee);
-    return rocketEquationForFuel(v2 - v1);
+    return rocketEquationForFuel(v2, v1);
 }
 
 void PlanDeorbitIfInPermanentOrbit()
@@ -81,13 +133,15 @@ void PlanDeorbitIfInPermanentOrbit()
                        // otherwise perigee and apogee wouldn't have been measured
     {
         // Put us into a landing orbit
-        double NewPerigee = EXOSPHERE * 0.4 + MARS_RADIUS; // To use drag to slow us down
-        if (position.abs() > Greatest_Height * 0.99)
+        double NewPerigee = EXOSPHERE * 0.6 + MARS_RADIUS; // To use drag to slow us down
+        if (position.abs() > Greatest_Height * 0.99 && !OrbitChangeBurn)
         {
-            double fuelToBurn = calculateFuelBurnedForNewPerigee(Greatest_Height, 
-                                                                Lowest_Height, NewPerigee);
-            Planned_Fuel_Left = fuel - (fuelToBurn / (FUEL_CAPACITY * FUEL_DENSITY));
-            OrbitChangeBurn = Planned_Fuel_Left > 0.0;
+            // double fuelToBurn = -calculateFuelBurnedForNewPerigee(Greatest_Height, 
+            //                                                     Lowest_Height, NewPerigee);
+            // Planned_Fuel_Left = fuel - (fuelToBurn / (FUEL_CAPACITY * FUEL_DENSITY));
+            VelStart = velocity.abs();
+            VelAim = calculateNewVApogee(Greatest_Height, NewPerigee);
+            OrbitChangeBurn = true;
             ClearHeights();
         }
     }
@@ -97,7 +151,7 @@ void Deorbit()
 {
     PlanDeorbitIfInPermanentOrbit(); // Sets OrbitChangeBurn to true if a deorbit
                                     // is possible with remaining fuel
-    OrbitChangeBurner();
+    OrbitChangeBurnerVel();
 }
 
 void ChangeApogee(double NextApogee)
@@ -106,15 +160,13 @@ void ChangeApogee(double NextApogee)
     {
         if ((done & ORBITCHANGECALCDONE) == 0)
         {
-            double fuelToBurn = calculateFuelBurnedForNewApogee(Greatest_Height, Lowest_Height, NextApogee);
-            Planned_Fuel_Left = fuel - (abs(fuelToBurn) / (FUEL_CAPACITY * FUEL_DENSITY));
+            VelStart = velocity.abs();
+            VelAim = calculateNewVPerigee(Lowest_Height, NextApogee);
             done |= ORBITCHANGECALCDONE;
-            dir = 1 - 2 * signbit(fuelToBurn);
+            OrbitChangeBurn = true;
         }
-        OrbitChangeBurn = Planned_Fuel_Left > 0.0;
-        FaceDirection(velocity.norm() * dir);
-        OrbitChangeBurner();
-        if (fuel <= Planned_Fuel_Left)
+        OrbitChangeBurnerVel();
+        if (!OrbitChangeBurn)
         {
             ClearHeights();
             done &= !ORBITCHANGECALCDONE;
@@ -125,21 +177,17 @@ void ChangeApogee(double NextApogee)
 
 void ChangePerigee(double NextPerigee)
 {
-    if (position.abs() >= Greatest_Height * 0.999) // Only run the burner when we are very close to apogee
+    if (position.abs() >= Greatest_Height * 0.999 && (done & NEXTPERIGEEMET) == 0) // Only run the burner when we are very close to apogee
     {
         if ((done & ORBITCHANGECALCDONE) == 0)
         {
-            double fuelToBurn = calculateFuelBurnedForNewPerigee(Greatest_Height, // set to negative as we are burning in direction of travel
-                                                            Lowest_Height, NextPerigee);
-            Planned_Fuel_Left = fuel - (abs(fuelToBurn) / (FUEL_CAPACITY * FUEL_DENSITY));
+            VelStart = velocity.abs();
+            VelAim = calculateNewVApogee(Greatest_Height, NextPerigee);
             done |= ORBITCHANGECALCDONE;
-            dir = 1 - 2 * signbit(fuelToBurn);
-            iterations++;
+            OrbitChangeBurn = true;
         }
-        OrbitChangeBurn = Planned_Fuel_Left > 0.0;
-        FaceDirection(velocity.norm() * dir);
-        OrbitChangeBurner();
-        if (fuel <= Planned_Fuel_Left)
+        OrbitChangeBurnerVel();
+        if (!OrbitChangeBurn)
         {
             ClearHeights();
             done &= !ORBITCHANGECALCDONE;
@@ -156,17 +204,33 @@ void CirculariseCurrentOrbit()
     }
 }
 
-void MoveToOrbitInPlane(double NextApogee, double NextPerigee)
+void MoveToOrbitInPlane(double NextApogee, double NextPerigee) // This is done as efficiently as possible; if the new Apogee is higher than the current one we raise apogee first as
+                                                               // changing the perigee requires less impulse from a greater height
 {
     if (HeightsUpdated)
     {
-        if ((done & NEXTAPOGEEMET) == 0)
+        if (NextApogee > Greatest_Height)
         {
-            ChangeApogee(NextApogee);
+            if ((done & NEXTAPOGEEMET) == 0)
+            {
+                ChangeApogee(NextApogee);
+                Greatest_Height = NextApogee;
+            }
+            else if ((done & NEXTPERIGEEMET) == 0)
+            {
+                ChangePerigee(NextPerigee);
+            }
         }
         else
         {
-            ChangePerigee(NextPerigee);
+            if ((done & NEXTPERIGEEMET) == 0)
+            {
+                ChangePerigee(NextPerigee);
+            }
+            else if ((done & NEXTAPOGEEMET) == 0)
+            {
+                ChangeApogee(NextApogee);
+            }
         }
     }
 }
@@ -193,8 +257,8 @@ void ApproachMoon()
     if (!MoonApproachStarted && HeightsUpdated)
     {
         CurAngle = CalculateAngleXY(position, vector3d(), MoonPos);
-        double ApogeeHeight = MOONAPROACHAPOGEE;
-        FuelToBurn = calculateFuelBurnedForNewApogee((Greatest_Height + Lowest_Height) / 2.0, (Greatest_Height + Lowest_Height) / 2.0, ApogeeHeight) / (FUEL_CAPACITY * FUEL_DENSITY);
+        ApogeeHeight = MoonDistance + 1 * MOONRADIUS;
+        VelAim = calculateNewVPerigee(Lowest_Height, ApogeeHeight);
         double JourneyTime = KeplerPeriod(ApogeeHeight / 2.0 + ((Greatest_Height + Lowest_Height) / 2.0) / 2.0) / 2.0;
         // TODO: Account for Gravitational acceleration by moon by multiplying MaxJourneyTime by < 1.0
         double AngleToBurn = M_PI - JourneyTime * MOONOMEGA; // Angle between lander and moon to place our perigee for the transfer
@@ -205,19 +269,18 @@ void ApproachMoon()
         while (CurAngle < 0) {
             CurAngle += 2 * M_PI;
         }
-        double TimeToBurn = FuelToBurn / FUEL_RATE_AT_MAX_THRUST;
+        double TimeToBurn = FuelToBurn * (FUEL_CAPACITY * FUEL_DENSITY) / FUEL_RATE_AT_MAX_THRUST;
         AngleToStartBurn = AngleToBurn - TimeToBurn * CircularOrbitVelocity * 0.5 / ((Greatest_Height + Lowest_Height) / 2.0);
         MoonApproachStarted = (CurAngle - AngleToStartBurn) <= M_PI * 0.005 && (CurAngle - AngleToStartBurn) >= 0.0; // when we are within 1/200 of a radian
-        if (MoonApproachStarted && abs(FuelToBurn) < fuel)
+        if (MoonApproachStarted)
         {
             OrbitChangeBurn = true;
-            Planned_Fuel_Left = fuel - abs(FuelToBurn);
+            VelStart = velocity.abs();
         }
     }
     if (MoonApproachStarted)
     {
-        FaceDirection(-velocity.norm()); // Throughout this function we have assumed the lander is in a lower orbit than the moon, so we will continue to do so
-        OrbitChangeBurner();
+        OrbitChangeBurnerVel();
     }
 }
 
