@@ -2356,6 +2356,9 @@ void glut_key (unsigned char k, int x, int y)
     }
     break;
   
+    case 'y': case 'Y':
+      AUTO_NEXT = DEBUGHELPER;
+
   case 'e': case 'E':
     if (AUTO_NEXT == TAKINGINPUT)
     {

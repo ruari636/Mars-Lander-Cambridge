@@ -163,6 +163,14 @@ void display_input_interface (void)
     glut_print(TEXTSTARTX, TEXTSTARTY + NEWLINE * 2, "Press e to enter and input values, press x to cancel");
 }
 
+void display_dev_info()
+{
+    int curYpos = 0;
+    extern double VelAim;
+    glut_print(TEXTSTARTX, TEXTSTARTY - curYpos, "velocity : " + to_string(velocity.abs())); curYpos += NEWLINE;
+    glut_print(TEXTSTARTX, TEXTSTARTY - curYpos, "velocity aim : " + to_string(VelAim)); curYpos += NEWLINE;
+}
+
 VoidFunction HelpfulInformation(COPILOT_ACTION CurrentAction)
 {
     curYpos = TEXTSTARTY;
@@ -175,6 +183,8 @@ VoidFunction HelpfulInformation(COPILOT_ACTION CurrentAction)
             return KEandEstimatedSuicideBurnWork;
         case TAKINGINPUT:
             return display_input_interface;
+        case DEBUGHELPER:
+            return display_dev_info;
         default:
             return NothingToShow;
     }

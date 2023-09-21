@@ -25,6 +25,8 @@ double calculateFuelBurnedForNewPerigee(double Apogee, double Perigee, double Ne
 
 double calculateFuelBurnedForNewApogee(double Apogee, double Perigee, double NewApogee);
 
+void ChangePerigee(double NextPerigee);
+
 void PlanDeorbitIfInPermanentOrbit();
 
 void Deorbit();

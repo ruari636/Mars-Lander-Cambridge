@@ -83,6 +83,14 @@ void autopilot (void)
       case (DONOTHING):
         break;
 
+      case (DEBUGHELPER):
+        extern bool HeightsUpdated;
+        if (HeightsUpdated)
+        {
+          ChangePerigee(2.0E6 + MARS_RADIUS);
+        }
+        break;
+
       default:
         break;
     }

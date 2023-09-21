@@ -161,7 +161,8 @@ enum COPILOT_ACTION
   CUSTOMORBIT,
   GOTOMOON,
   BIIMPULSIVEMOONTRANSFER,
-  DONOTHING
+  DONOTHING,
+  DEBUGHELPER
 };
 
 //*******************************************************************//
