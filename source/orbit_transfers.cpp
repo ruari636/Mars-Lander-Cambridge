@@ -254,12 +254,13 @@ void ApproachMoon()
     if (!MoonApproachStarted && HeightsUpdated)
     {
         CurAngle = CalculateAngleXY(position, vector3d(), MoonPos);
-        ApogeeHeight = MoonDistance + 1 * MOONRADIUS;
+        ApogeeHeight = MoonDistance + 2 * MOONRADIUS;
         VelAim = calculateNewV(ApogeeHeight, Lowest_Height, Lowest_Height);
-        double JourneyTime = KeplerPeriod(ApogeeHeight / 2.0 + ((Greatest_Height + Lowest_Height) / 2.0) / 2.0) / 2.0;
+        double JourneyTime = KeplerPeriod((MoonDistance - MOONRADIUS) / 2.0 + ((Greatest_Height + Lowest_Height) / 2.0) / 2.0) / 2.0; // use the moon distance instead of our calculated apogee for the apogee of the journey
         // TODO: Account for Gravitational acceleration by moon by multiplying MaxJourneyTime by < 1.0
         double AngleToBurn = M_PI - JourneyTime * MOONOMEGA; // Angle between lander and moon to place our perigee for the transfer
-        AngleToBurn += (MOONRADIUS) / (MoonDistance * 2 * M_PI); // Account for radius in case moon is close to planet
+        double LanderOmega = velocity.abs() / position.abs();
+        AngleToBurn += LanderOmega * MOONRADIUS * 0.9 / (MOONOMEGA * MoonDistance * M_PI); // Account for radius in case moon is close to planet (but under account slightly for moons acceleration of lander)
         while (AngleToBurn < 0) {
         AngleToBurn += 2 * M_PI;
         }
@@ -286,13 +287,9 @@ double SpecificOrbitalEnergy()
     return velocity.abs2() - (GRAVITY * MostImportantMass / position.abs());
 }
 
-double HyperbolicPerigee()
+double Eccentricity()
 {
     double GM = GRAVITY * MostImportantMass;
-    // mu * (2/r - 1/a) = v^2
-    // a * 2 * mu / r - mu = a * v^2
-    // a * (2 * mu / r - v^2) = mu
-    // a = mu / (2 * mu / r - v^2)
     vector3d RelativeVel = MarsSphereOfInfluence ? velocity:velocity - MoonVel;
     vector3d RadiusVec = MarsSphereOfInfluence ? position:-1 * MoonRelPos;
     double FGrav = MarsSphereOfInfluence ? FGravMars.abs():FGravMoon.abs();
@@ -302,6 +299,18 @@ double HyperbolicPerigee()
     double Alpha = FGrav * LocalRadius * LocalRadius;
     vector3d AngMomentum = LANDERMASS * RadiusVec.crossProduct(RelativeVel);
     double e = sqrt(1 + 2 * E * AngMomentum.abs2() / (ReducedMass * Alpha * Alpha));
+    return e;
+}
+
+double HyperbolicPerigee()
+{
+    // mu * (2/r - 1/a) = v^2
+    // a * 2 * mu / r - mu = a * v^2
+    // a * (2 * mu / r - v^2) = mu
+    // a = mu / (2 * mu / r - v^2)
+    double GM = GRAVITY * MostImportantMass;
+    double a = GM / (2 * GM / LocalRadius - velocity.abs2());
+    double e = Eccentricity();
     double periapsis = -a * (e - 1);
     return periapsis;
 }
@@ -311,7 +320,16 @@ void PreventMoonEscape()
 {
     if (!EscapePrevented)
     {
-
+        if (Eccentricity() > 0.5)
+        {
+            FaceDirection(-velocity);
+            throttle = 1.0;
+        }
+        else
+        {
+            throttle = 0.0;
+            EscapePrevented = true;
+        }
     }
     else
     {

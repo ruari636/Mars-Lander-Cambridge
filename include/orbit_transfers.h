@@ -15,9 +15,9 @@ void InitialiseOrbitTransfers();
 
 void OrbitChangeBurner();
 
-double calculateNewVApogee(double Apogee, double NewPerigee);
+void OrbitChangeBurnerVel();
 
-double calculateNewVPerigee(double Perigee, double NewApogee);
+double calculateNewV(double Apogee, double Perigee, double CurDist);
 
 double rocketEquationForFuel(double v2, double v1);
 
