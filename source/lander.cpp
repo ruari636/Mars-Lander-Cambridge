@@ -34,6 +34,9 @@ double Altitude;
 double DistanceFromMostImportantMass;
 double LocalRadius;
 double MoonApproachPerigee;
+double OrbitHeight;
+
+vector3d OrbitVelTangential;
 
 void autopilot (void)
 {
@@ -76,17 +79,26 @@ void autopilot (void)
           MoonApproachPerigee = abs(HyperbolicPerigee());
           done |= MOONAPROACHBURNFINISHED; // status of Orbit_ChangeBurn will change once we start burning in here, hence the done flag
           MoonApproachStarted = false;
-          if ((MoonApproachPerigee > CurPerigeeCalculated) && Altitude < 2 * MOONRADIUS && !MarsSphereOfInfluence)
+          if ((MoonApproachPerigee > CurPerigeeCalculated) && Altitude < 1.6 * MOONRADIUS && !MarsSphereOfInfluence)
           {
-            //if ((done & ORBITCHANGECALCDONE) == 0)
-            {
+            if ((done & ORBITCHANGECALCDONE) == 0)
+            { 
+              OrbitHeight = LocalRadius + Altitude;
               vector3d OrbitVel = MarsSphereOfInfluence ? velocity:velocity - MoonVel;
-              VelStart = OrbitVel.abs();
-              VelAim = calculateNewV(LocalRadius + Altitude, LocalRadius + Altitude, LocalRadius + Altitude);
-              done |= ORBITCHANGECALCDONE;
+
+              double dotProd = OrbitVel * MoonRelPos;
+              double scalarProjection = dotProd / MoonRelPos.abs2();
+              vector3d OrbitVelNormal = OrbitVel * scalarProjection;
+              OrbitVelTangential = OrbitVel - OrbitVelNormal;
+
+              VelStart = OrbitVelTangential.abs();
+              VelAim = calculateNewV(OrbitHeight, OrbitHeight, OrbitHeight);
               OrbitChangeBurn = true;
+              done |= ORBITCHANGECALCDONE;
             }
-            OrbitChangeBurnerVel();
+              fuel = 1.0;
+
+            OrbitChangeBurnerVel(OrbitVelTangential.norm());
             if (!OrbitChangeBurn)
             {
                 ClearHeights();

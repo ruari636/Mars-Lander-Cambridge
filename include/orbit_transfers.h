@@ -17,6 +17,8 @@ void OrbitChangeBurner();
 
 void OrbitChangeBurnerVel();
 
+void OrbitChangeBurnerVel(vector3d dir);
+
 double calculateNewV(double Apogee, double Perigee, double CurDist);
 
 double rocketEquationForFuel(double v2, double v1);

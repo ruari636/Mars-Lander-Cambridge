@@ -37,9 +37,8 @@ void OrbitChangeBurner()
     }
 }
 
-void OrbitChangeBurnerVelIncrease()
+void OrbitChangeBurnerVelIncrease(vector3d OrbitVel)
 {
-    vector3d OrbitVel = MarsSphereOfInfluence ? velocity:velocity - MoonVel;
     if (OrbitChangeBurn)
     {
         if (OrbitVel.abs() < VelAim)
@@ -55,9 +54,8 @@ void OrbitChangeBurnerVelIncrease()
     }
 }
 
-void OrbitChangeBurnerVelDecrease()
+void OrbitChangeBurnerVelDecrease(vector3d OrbitVel)
 {
-    vector3d OrbitVel = MarsSphereOfInfluence ? velocity:velocity - MoonVel;
     if (OrbitChangeBurn)
     {
         if (OrbitVel.abs() > VelAim)
@@ -75,20 +73,52 @@ void OrbitChangeBurnerVelDecrease()
 
 void OrbitChangeBurnerVel()
 {
-    vector3d OrbitVel = MarsSphereOfInfluence ? velocity:velocity - MoonVel;
+    vector3d OrbitVel;
+    if (MarsSphereOfInfluence)
+    {
+        OrbitVel = velocity;
+    }
+    else
+    {
+        OrbitVel = velocity - MoonVel;
+    }
     if (VelStart > VelAim)
     {
         FaceDirection(-OrbitVel.norm());
-        OrbitChangeBurnerVelDecrease();
+        OrbitChangeBurnerVelDecrease(OrbitVel);
     }
     else
     {
         FaceDirection(OrbitVel.norm());
-        OrbitChangeBurnerVelIncrease();
+        OrbitChangeBurnerVelIncrease(OrbitVel);
     }
 }
 
-double calculateNewV(double Apogee, double Perigee, double CurDist)
+void OrbitChangeBurnerVel(vector3d dir)
+{
+    vector3d OrbitVel;
+    if (MarsSphereOfInfluence)
+    {
+        OrbitVel = velocity;
+    }
+    else
+    {
+        OrbitVel = velocity - MoonVel;
+    }
+    OrbitVel = (OrbitVel * dir) * dir;
+    if (VelStart > VelAim)
+    {
+        FaceDirection(-OrbitVel.norm());
+        OrbitChangeBurnerVelDecrease(OrbitVel);
+    }
+    else
+    {
+        FaceDirection(OrbitVel.norm());
+        OrbitChangeBurnerVelIncrease(OrbitVel);
+    }
+}
+
+double calculateNewV(double Apogee, double Perigee, double CurDist) // a lil vis-viva equation
 {
     double mu = GRAVITY * MostImportantMass;
     double e = (Apogee - Perigee) / (Apogee + Perigee);
