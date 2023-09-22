@@ -33,10 +33,8 @@ double MoonDistance;
 double Altitude;
 double DistanceFromMostImportantMass;
 double LocalRadius;
-double MoonApproachPerigee;
-double OrbitHeight;
-
-vector3d OrbitVelTangential;
+extern bool EscapePrevented;
+extern double OrbitHeight;
 
 void autopilot (void)
 {
@@ -71,57 +69,23 @@ void autopilot (void)
         break;
 
       case (GOTOMOON):
-        ApproachMoon();
-        extern double VelStart, VelAim;
-        if ((MoonApproachStarted && !OrbitChangeBurn) || (done & MOONAPROACHBURNFINISHED) == MOONAPROACHBURNFINISHED)
+        if (EscapePrevented)
         {
-          double CurPerigeeCalculated = MoonApproachPerigee;
-          MoonApproachPerigee = abs(HyperbolicPerigee());
-          done |= MOONAPROACHBURNFINISHED; // status of Orbit_ChangeBurn will change once we start burning in here, hence the done flag
-          MoonApproachStarted = false;
-          if ((MoonApproachPerigee > CurPerigeeCalculated) && Altitude < 1.6 * MOONRADIUS && !MarsSphereOfInfluence)
-          {
-            if ((done & ORBITCHANGECALCDONE) == 0)
-            { 
-              OrbitHeight = LocalRadius + Altitude;
-
-              double dotProd = OrbitVel * (-MoonRelPos);
-              double scalarProjection = dotProd / MoonRelPos.abs2();
-              vector3d OrbitVelNormal = OrbitVel * scalarProjection;
-              OrbitVelTangential = OrbitVel - OrbitVelNormal;
-
-              VelStart = OrbitVelTangential.abs();
-              VelAim = calculateNewV(OrbitHeight, OrbitHeight, OrbitHeight);
-              OrbitChangeBurn = true;
-              done |= ORBITCHANGECALCDONE;
-            }
-
-            OrbitChangeBurnerVel(OrbitVelTangential.norm());
-            if (!OrbitChangeBurn)
-            {
-                ClearHeights();
-                //done &= !ORBITCHANGECALCDONE;
-            }
-          }
-          else
-          {
-            
-          }
+          HoldUnstableOrbit(OrbitHeight);
+        }
+        else
+        {
+          ApproachMoon();
+          PreventMoonEscape();
         }
         break;
 
       case (BIIMPULSIVEMOONTRANSFER):
         ApproachMoon();
-        if ((MoonApproachStarted && !OrbitChangeBurn) || (done & MOONAPROACHBURNFINISHED) == MOONAPROACHBURNFINISHED)
+        else
         {
-          
-          done |= MOONAPROACHBURNFINISHED; // status of Orbit_ChangeBurn will change once we start burning in here, hence the done flag
-          MoonApproachStarted = false;
-          if (MoonAltitude < (MOONRADIUS + EXOSPHERE) * 1.2 && !MarsSphereOfInfluence) // We are close and Moon gravity is stronger than Mars gravity
-          {
-            if ((done & MOONESCAPEPREVENTED) != MOONESCAPEPREVENTED) PreventMoonEscape(); // brings us into a reasonably stable moon orbit
-            else CirculariseCurrentOrbit(); // circularises it
-          }
+          ApproachMoon();
+          PreventMoonEscape();
         }
 
       case (DONOTHING):
@@ -158,8 +122,7 @@ void numerical_dynamics (void)
   MoonPos = {-MoonDistance * sin(MOONOMEGA * simulation_time), MoonDistance * cos(MOONOMEGA * simulation_time), 0.0};
   MoonVel = {-MoonDistance * MOONOMEGA * cos(MOONOMEGA * simulation_time), 
              -MoonDistance * MOONOMEGA * sin(MOONOMEGA * simulation_time), 0.0};
-  MoonRelPos = MoonPos - position;  
-  MoonApproachPerigee = HyperbolicPerigee();
+  MoonRelPos = MoonPos - position;
   OrbitVel = MarsSphereOfInfluence ? velocity:velocity - MoonVel;
 
   FGravMars = -position.norm() * ((MARS_MASS * LANDERMASS * GRAVITY) / (position.abs2()));
@@ -178,7 +141,7 @@ void numerical_dynamics (void)
   Thrust = thrust_wrt_world();
   acceleration = (FGravMars + FGravMoon + FDragLander + Thrust) / (double)LANDERMASS;
 
-  FaceDirection(-VecAtAngleToPosInPlane(RotationAngle)); // This messes with the autopilot sometimes, and I have no idea why
+  FaceDirection(-VecAtAngleToPosInPlane(RotationAngle)); // This messes with the autopilot sometimes, and I have no idea how
 
 #if defined(USEVERLET)
   if (simulation_time == 0)
@@ -191,6 +154,8 @@ void numerical_dynamics (void)
   position += velocity * delta_t;
   velocity += acceleration * delta_t;
 #endif
+
+  //FaceDirection(-VecAtAngleToPosInPlane(RotationAngle)); // This messes with the autopilot sometimes, and I have no idea why
 
   // Here we can apply an autopilot to adjust the thrust, parachute and attitude
   if (autopilot_enabled) 

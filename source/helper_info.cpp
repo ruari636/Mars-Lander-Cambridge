@@ -83,7 +83,6 @@ void DisplayTransferStatus()
     glut_print_helper(TEXTSTARTX, view_height-curYpos, "Current Angle - " + to_string(AngFunc)); curYpos += TEXTGAPHELP;
     glut_print_helper(TEXTSTARTX, view_height-curYpos, "Fuel to Burn - " + to_string(abs(FuelToBurn))); curYpos += TEXTGAPHELP;
     glut_print_helper(TEXTSTARTX, view_height-curYpos, "Apogee aimed for - " + to_string(ApogeeHeight)); curYpos += TEXTGAPHELP;
-    glut_print_helper(TEXTSTARTX, view_height-curYpos, "Perigee - " + to_string(MoonApproachPerigee)); curYpos += TEXTGAPHELP;
   }
 }
 
