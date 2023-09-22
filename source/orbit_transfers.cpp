@@ -106,15 +106,18 @@ void OrbitChangeBurnerVel(vector3d dir)
         OrbitVel = velocity - MoonVel;
     }
     OrbitVel = (OrbitVel * dir) * dir;
-    if (VelStart > VelAim)
+    if (OrbitChangeBurner)
     {
-        FaceDirection(-OrbitVel.norm());
-        OrbitChangeBurnerVelDecrease(OrbitVel);
-    }
-    else
-    {
-        FaceDirection(OrbitVel.norm());
-        OrbitChangeBurnerVelIncrease(OrbitVel);
+        if (VelStart > VelAim)
+        {
+            FaceDirection(-OrbitVel.norm());
+            OrbitChangeBurnerVelDecrease(OrbitVel);
+        }
+        else
+        {
+            FaceDirection(OrbitVel.norm());
+            OrbitChangeBurnerVelIncrease(OrbitVel);
+        }
     }
 }
 

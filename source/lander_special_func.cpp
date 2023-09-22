@@ -67,8 +67,8 @@ void FaceDirection(vector3d dir)
 
 vector3d VecAtAngleToPosInPlane(double angle)
 {
-    vector3d PlaneNormal = position.crossProduct(velocity).norm();
-    vector3d PosNorm = position.norm();
+    vector3d PlaneNormal = MarsSphereOfInfluence ? position.crossProduct(velocity).norm():(-MoonRelPos).crossProduct(OrbitVel).norm();
+    vector3d PosNorm = MarsSphereOfInfluence ? position.norm():(-MoonRelPos).norm();
     if (velocity.abs2() == 0 || PlaneNormal.abs2() == 0) return PosNorm;
     vector3d PosPerp = PosNorm.crossProduct(PlaneNormal);
     double xFac = sin(angle);

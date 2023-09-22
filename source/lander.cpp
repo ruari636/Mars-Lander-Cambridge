@@ -84,9 +84,8 @@ void autopilot (void)
             if ((done & ORBITCHANGECALCDONE) == 0)
             { 
               OrbitHeight = LocalRadius + Altitude;
-              vector3d OrbitVel = MarsSphereOfInfluence ? velocity:velocity - MoonVel;
 
-              double dotProd = OrbitVel * MoonRelPos;
+              double dotProd = OrbitVel * (-MoonRelPos);
               double scalarProjection = dotProd / MoonRelPos.abs2();
               vector3d OrbitVelNormal = OrbitVel * scalarProjection;
               OrbitVelTangential = OrbitVel - OrbitVelNormal;
@@ -96,7 +95,6 @@ void autopilot (void)
               OrbitChangeBurn = true;
               done |= ORBITCHANGECALCDONE;
             }
-              fuel = 1.0;
 
             OrbitChangeBurnerVel(OrbitVelTangential.norm());
             if (!OrbitChangeBurn)
@@ -150,6 +148,7 @@ vector3d FDragChute;
 vector3d Thrust;
 vector3d acceleration;
 vector3d MoonVel;
+vector3d OrbitVel;
 double RotationAngle;
 
 void numerical_dynamics (void)
@@ -161,6 +160,7 @@ void numerical_dynamics (void)
              -MoonDistance * MOONOMEGA * sin(MOONOMEGA * simulation_time), 0.0};
   MoonRelPos = MoonPos - position;  
   MoonApproachPerigee = HyperbolicPerigee();
+  OrbitVel = MarsSphereOfInfluence ? velocity:velocity - MoonVel;
 
   FGravMars = -position.norm() * ((MARS_MASS * LANDERMASS * GRAVITY) / (position.abs2()));
   if (MoonGravityEnabled)
@@ -177,7 +177,8 @@ void numerical_dynamics (void)
   FDragChute = pow(LANDER_SIZE * 2, 2) * 5 * DRAGCONSTANT(DRAG_COEF_CHUTE) * VELCONSTANT;
   Thrust = thrust_wrt_world();
   acceleration = (FGravMars + FGravMoon + FDragLander + Thrust) / (double)LANDERMASS;
-  FaceDirection(-VecAtAngleToPosInPlane(RotationAngle));
+
+  FaceDirection(-VecAtAngleToPosInPlane(RotationAngle)); // This messes with the autopilot sometimes, and I have no idea why
 
 #if defined(USEVERLET)
   if (simulation_time == 0)
@@ -202,7 +203,6 @@ void numerical_dynamics (void)
     // Here we can apply 3-axis stabilization to ensure the base is always pointing downwards
     if (stabilized_attitude) attitude_stabilization();
   }
-
 }
 
 void initialize_simulation (void)
