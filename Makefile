@@ -1,5 +1,5 @@
 CC = g++
-CCSW = -O3 -Wno-deprecated-declarations
+CCSW = -O3 -Wno-deprecated-declarations -Werror
 PLATFORM = `uname`
 SRC_LOCATION := source
 INC_LOCATION := include

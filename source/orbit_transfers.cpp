@@ -39,9 +39,10 @@ void OrbitChangeBurner()
 
 void OrbitChangeBurnerVelIncrease()
 {
+    vector3d OrbitVel = MarsSphereOfInfluence ? velocity:velocity - MoonVel;
     if (OrbitChangeBurn)
     {
-        if (velocity.abs() < VelAim)
+        if (OrbitVel.abs() < VelAim)
         {
             throttle = 1.0;
         }
@@ -56,9 +57,10 @@ void OrbitChangeBurnerVelIncrease()
 
 void OrbitChangeBurnerVelDecrease()
 {
+    vector3d OrbitVel = MarsSphereOfInfluence ? velocity:velocity - MoonVel;
     if (OrbitChangeBurn)
     {
-        if (velocity.abs() > VelAim)
+        if (OrbitVel.abs() > VelAim)
         {
             throttle = 1.0;
         }
@@ -73,14 +75,15 @@ void OrbitChangeBurnerVelDecrease()
 
 void OrbitChangeBurnerVel()
 {
+    vector3d OrbitVel = MarsSphereOfInfluence ? velocity:velocity - MoonVel;
     if (VelStart > VelAim)
     {
-        FaceDirection(-velocity.norm());
+        FaceDirection(-OrbitVel.norm());
         OrbitChangeBurnerVelDecrease();
     }
     else
     {
-        FaceDirection(velocity.norm());
+        FaceDirection(OrbitVel.norm());
         OrbitChangeBurnerVelIncrease();
     }
 }
@@ -137,7 +140,7 @@ void PlanDeorbitIfInPermanentOrbit()
             // double fuelToBurn = -calculateFuelBurnedForNewPerigee(Greatest_Height, 
             //                                                     Lowest_Height, NewPerigee);
             // Planned_Fuel_Left = fuel - (fuelToBurn / (FUEL_CAPACITY * FUEL_DENSITY));
-            NewPerigee -= 0.0004 * 0.5 * FGravMoon.abs() * pow(KeplerPeriod((Greatest_Height + Lowest_Height) * 0.5), 2); // take into account moon cantankerous interference on perigee
+            NewPerigee -= 0.0004 * 0.5 * (FGravMoon * velocity.norm()) * pow(KeplerPeriod((Greatest_Height + Lowest_Height) * 0.5), 2); // take into account moon cantankerous interference on perigee
             VelStart = velocity.abs();
             VelAim = calculateNewV(Greatest_Height, NewPerigee, Greatest_Height);
             OrbitChangeBurn = true;
@@ -294,10 +297,10 @@ double Eccentricity()
     vector3d RelativeVel = MarsSphereOfInfluence ? velocity:velocity - MoonVel;
     vector3d RadiusVec = MarsSphereOfInfluence ? position:-1 * MoonRelPos;
     double FGrav = MarsSphereOfInfluence ? FGravMars.abs():FGravMoon.abs();
-    double a = GM / (2 * GM / LocalRadius - velocity.abs2());
+    double a = GM / (2 * GM / LocalRadius + Altitude - velocity.abs2());
     double E = -GM / (2 * a);
     double ReducedMass = LANDERMASS * MostImportantMass / (LANDERMASS + MostImportantMass);
-    double Alpha = FGrav * LocalRadius * LocalRadius;
+    double Alpha = FGrav * (LocalRadius + Altitude) * (LocalRadius + Altitude);
     vector3d AngMomentum = LANDERMASS * RadiusVec.crossProduct(RelativeVel);
     double e = sqrt(1 + 2 * E * AngMomentum.abs2() / (ReducedMass * Alpha * Alpha));
     return e;
@@ -310,7 +313,7 @@ double HyperbolicPerigee()
     // a * (2 * mu / r - v^2) = mu
     // a = mu / (2 * mu / r - v^2)
     double GM = GRAVITY * MostImportantMass;
-    double a = GM / (2 * GM / LocalRadius - velocity.abs2());
+    double a = GM / (2 * GM / (LocalRadius + Altitude) - velocity.abs2());
     double e = Eccentricity();
     double periapsis = -a * (e - 1);
     return periapsis;

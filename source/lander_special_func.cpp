@@ -137,22 +137,23 @@ void UpdateHeights()
                                                                    // also due to orbital mechanics, when deorbiting the altitude can increase for a bit so an extra check was added
    {
         done |= LOWESTHEIGHTMEASUREDMASK;
-        if (!DistancesWithinError(Lowest_Height, position.abs()))
+        if ((done & MOONAPROACHBURNFINISHED) == MOONAPROACHBURNFINISHED) done |= HYPERBOLICPERIGEEMASK;
+        if (!DistancesWithinError(Lowest_Height, Altitude + LocalRadius))
         {
             HeightsUpdated = false;
             done &= !LOWESTHEIGHTMEASUREDMASK;
         }
-        Lowest_Height = position.abs();
+        Lowest_Height = Altitude + LocalRadius;
    }
    else if (descending && !previous_descending)                    // we have just gone past the highest point in the orbit, measure it
    {
         done |= GREATESTHEIGHTMEASUREDMASK;
-        if (!DistancesWithinError(Greatest_Height, position.abs()))
+        if (!DistancesWithinError(Greatest_Height, Altitude + LocalRadius))
         {
             HeightsUpdated = false;
             done &= !GREATESTHEIGHTMEASUREDMASK;
         }
-        Greatest_Height = position.abs();
+        Greatest_Height = Altitude + LocalRadius;
    }
    if (done & (LOWESTHEIGHTMEASUREDMASK + GREATESTHEIGHTMEASUREDMASK) == (LOWESTHEIGHTMEASUREDMASK + GREATESTHEIGHTMEASUREDMASK))
    {
