@@ -72,7 +72,6 @@ void autopilot (void)
 
       case (BIIMPULSIVEMOONTRANSFER):
         ApproachMoon();
-        MoonApproachPerigee = HyperbolicPerigee();
         if ((MoonApproachStarted && !OrbitChangeBurn) || (done & MOONAPROACHBURNFINISHED) == MOONAPROACHBURNFINISHED)
         {
           
@@ -119,6 +118,7 @@ void numerical_dynamics (void)
   MoonVel = {-MoonDistance * MOONOMEGA * cos(MOONOMEGA * simulation_time), 
              -MoonDistance * MOONOMEGA * sin(MOONOMEGA * simulation_time), 0.0};
   MoonRelPos = MoonPos - position;  
+  MoonApproachPerigee = HyperbolicPerigee();
 
   FGravMars = -position.norm() * ((MARS_MASS * LANDERMASS * GRAVITY) / (position.abs2()));
   if (MoonGravityEnabled)

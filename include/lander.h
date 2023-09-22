@@ -177,6 +177,8 @@ extern double InputPerigee;
 extern vector3d MoonPos;
 extern vector3d MoonVel;
 extern vector3d MoonRelPos;
+extern vector3d FGravMars;
+extern vector3d FGravMoon;
 extern bool MoonGravityEnabled;
 extern double MostImportantMass;
 extern double Altitude;

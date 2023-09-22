@@ -288,10 +288,22 @@ double SpecificOrbitalEnergy()
 
 double HyperbolicPerigee()
 {
-    double V_inf = (velocity - MoonVel).abs();
-    double a = -MostImportantMass * GRAVITY / (2.0 * V_inf * V_inf);
-    double e = 1 + (position.abs() * V_inf * V_inf) / (GRAVITY * MostImportantMass);    
-    return a / (e - 1);
+    double GM = GRAVITY * MostImportantMass;
+    // mu * (2/r - 1/a) = v^2
+    // a * 2 * mu / r - mu = a * v^2
+    // a * (2 * mu / r - v^2) = mu
+    // a = mu / (2 * mu / r - v^2)
+    vector3d RelativeVel = MarsSphereOfInfluence ? velocity:velocity - MoonVel;
+    vector3d RadiusVec = MarsSphereOfInfluence ? position:-1 * MoonRelPos;
+    double FGrav = MarsSphereOfInfluence ? FGravMars.abs():FGravMoon.abs();
+    double a = GM / (2 * GM / LocalRadius - velocity.abs2());
+    double E = -GM / (2 * a);
+    double ReducedMass = LANDERMASS * MostImportantMass / (LANDERMASS + MostImportantMass);
+    double Alpha = FGrav * LocalRadius * LocalRadius;
+    vector3d AngMomentum = LANDERMASS * RadiusVec.crossProduct(RelativeVel);
+    double e = sqrt(1 + 2 * E * AngMomentum.abs2() / (ReducedMass * Alpha * Alpha));
+    double periapsis = -a * (e - 1);
+    return periapsis;
 }
 
 bool EscapePrevented = false;
