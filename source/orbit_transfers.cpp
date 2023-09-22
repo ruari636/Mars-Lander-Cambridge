@@ -131,12 +131,13 @@ void PlanDeorbitIfInPermanentOrbit()
                        // otherwise perigee and apogee wouldn't have been measured
     {
         // Put us into a landing orbit
-        double NewPerigee = EXOSPHERE * 0.6 + MARS_RADIUS; // To use drag to slow us down
+        double NewPerigee = EXOSPHERE * 0.5 + MARS_RADIUS; // To use drag to slow us down
         if (position.abs() > Greatest_Height * 0.99 && !OrbitChangeBurn)
         {
             // double fuelToBurn = -calculateFuelBurnedForNewPerigee(Greatest_Height, 
             //                                                     Lowest_Height, NewPerigee);
             // Planned_Fuel_Left = fuel - (fuelToBurn / (FUEL_CAPACITY * FUEL_DENSITY));
+            NewPerigee -= 0.0004 * 0.5 * FGravMoon.abs() * pow(KeplerPeriod((Greatest_Height + Lowest_Height) * 0.5), 2); // take into account moon cantankerous interference on perigee
             VelStart = velocity.abs();
             VelAim = calculateNewV(Greatest_Height, NewPerigee, Greatest_Height);
             OrbitChangeBurn = true;

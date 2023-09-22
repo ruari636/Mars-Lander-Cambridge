@@ -41,6 +41,7 @@ void autopilot (void)
   {
     UpdateHeights();
     PreventLanderEscape(); // We don't want to fly away forever
+    
     switch (AUTO_NEXT)
     {
       case (PROPORTIONALLANDING):
@@ -68,6 +69,31 @@ void autopilot (void)
 
       case (GOTOMOON):
         ApproachMoon();
+        extern double VelStart, VelAim;
+        if ((MoonApproachStarted && !OrbitChangeBurn) || (done & MOONAPROACHBURNFINISHED) == MOONAPROACHBURNFINISHED)
+        {
+          ReachedHyperbolicPerigee();
+          done |= MOONAPROACHBURNFINISHED; // status of Orbit_ChangeBurn will change once we start burning in here, hence the done flag
+          MoonApproachStarted = false;
+          throttle = 0.0001;
+          if ((done & HYPERBOLICPERIGEEMASK) == HYPERBOLICPERIGEEMASK)
+          {
+            OrbitChangeBurnerVel();
+            if (!OrbitChangeBurn)
+            {
+                ClearHeights();
+                //done &= !ORBITCHANGECALCDONE;
+            }
+            throttle = 1.0;
+          }
+          else
+          {
+            VelStart = velocity.abs();
+            VelAim = calculateNewV(LocalRadius, LocalRadius, LocalRadius);
+            done |= ORBITCHANGECALCDONE;
+            OrbitChangeBurn = true;
+          }
+        }
         break;
 
       case (BIIMPULSIVEMOONTRANSFER):

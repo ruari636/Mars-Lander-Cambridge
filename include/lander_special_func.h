@@ -16,6 +16,7 @@
 
 #define LOWESTHEIGHTMEASUREDMASK 0x0001
 #define GREATESTHEIGHTMEASUREDMASK 0x0002
+#define HYPERBOLICPERIGEEMASK 0x0080
 
 void InitialiseSpecialFunc();
 
@@ -34,6 +35,8 @@ void ThrustProportionalToUnsafeVel();
 void AutoDeployParachuteWhenReady();
 
 void UpdateHeights(); // returns false when we have gathered all info about current elliptical orbit
+
+void ReachedHyperbolicPerigee(); //sets a bitmask on the done int when we have just passed the perigee
 
 void ClearHeights();
 

@@ -160,6 +160,18 @@ void UpdateHeights()
    }
 }
 
+bool PerigeeDescending;
+bool PreviousPerigeeDescending;
+void ReachedHyperbolicPerigee()
+{
+   previous_descending = PerigeeDescending;
+   PerigeeDescending = signbit(climb_speed);
+   if (!PerigeeDescending && PreviousPerigeeDescending)
+   {
+    done |= HYPERBOLICPERIGEEMASK;
+   }
+}
+
 void ClearHeights()
 {
     done &= !(LOWESTHEIGHTMEASUREDMASK + GREATESTHEIGHTMEASUREDMASK);

@@ -1756,8 +1756,8 @@ void update_visualization (void)
   MoonAltitude = MoonRelPos.abs() - MOONRADIUS;
 
   // Use average of current and previous positions when calculating climb and ground speeds
-  av_p = (position + last_position).norm();
-  if (delta_t != 0.0) velocity_from_positions = (position - last_position)/delta_t;
+  av_p = MarsSphereOfInfluence ? (position + last_position).norm():(position + last_position - 2 * MoonPos).norm();
+  if (delta_t != 0.0) { velocity_from_positions = (position - last_position)/delta_t; }
   else velocity_from_positions = vector3d(0.0, 0.0, 0.0);
   climb_speed = velocity_from_positions*av_p;
   ground_speed = (velocity_from_positions - climb_speed*av_p).abs();
