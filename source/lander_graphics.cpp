@@ -837,7 +837,7 @@ void draw_instrument_window (void)
   if (!Landed) s << ": " << scenario_description[scenario];
   glut_print(view_width+GAP-488, 17, s.str());
   if (Landed) {
-    if (MarsAltitude < LANDER_SIZE/2.0) glut_print(80, 17, "Lander is below the surface!");
+    if (Altitude < LANDER_SIZE/2.0) glut_print(80, 17, "Lander is below the surface!");
     else {
       s.str(""); s << "Fuel consumed " << fixed << FUEL_CAPACITY*(1.0-fuel) << " litres";
       glut_print(view_width+GAP-427, 17, s.str());
@@ -1097,14 +1097,13 @@ void draw_orbital_window (void)
   gluSphere(quadObj, MARS_RADIUS * MOONRADIUSRATIO, slices, stacks);
   glPopMatrix();
 
-  // Draw previous moon positions in cyan that fades with time
+  // Draw previous moon positions that fades with time
   glDisable(GL_LIGHTING);
   glEnable(GL_BLEND);
   glLineWidth(1.0);
   glBegin(GL_LINE_STRIP);
-  glColor3f(0.0, 1.0, 1.0);
 
-  // draws a track for the moon
+  // draws a track for the moon in a pale yellow
   double ThetaNought = atan2(MoonPos.y, MoonPos.x);
   for (i=0; i<3600; i++)
   {
@@ -1114,12 +1113,8 @@ void draw_orbital_window (void)
     j = (j+N_TRACK-1)%N_TRACK;
   }
   glEnd();
-  glDisable(GL_BLEND);
   
   // Draw previous lander positions in cyan that fades with time
-  glDisable(GL_LIGHTING);
-  glEnable(GL_BLEND);
-  glLineWidth(1.0);
   glBegin(GL_LINE_STRIP);
   glColor3f(0.0, 1.0, 1.0);
   glVertex3d(position.x, position.y, position.z);
@@ -1770,27 +1765,12 @@ void update_visualization (void)
     d = position - last_position;
     a = d.abs2();
     b = 2.0*last_position*d;
-    c = last_position.abs2() - (MARS_RADIUS + LANDER_SIZE/2.0) * (MARS_RADIUS + LANDER_SIZE/2.0);
+    c = last_position.abs2() - (LocalRadius + LANDER_SIZE/2.0) * (LocalRadius + LANDER_SIZE/2.0);
     mu = (-b - sqrt(b*b-4.0*a*c))/(2.0*a);
     position = last_position + mu*d;
+    //position = MarsSphereOfInfluence ? PositionToBody:PositionToBody + MoonPos;
     simulation_time -= (1.0-mu)*delta_t; 
     Altitude = LANDER_SIZE/2.0;
-    Landed = true;
-    if ((fabs(climb_speed) > MAX_IMPACT_DESCENT_RATE) || (fabs(ground_speed) > MAX_IMPACT_GROUND_SPEED)) crashed = true;
-    velocity_from_positions = vector3d(0.0, 0.0, 0.0);
-  }
-
-  if (MoonAltitude < LANDER_SIZE/2.0) {
-    glutIdleFunc(NULL);
-    // Estimate position and time of impact
-    d = position - last_position;
-    a = d.abs2();
-    b = 2.0*last_position*d;
-    c = last_position.abs2() - (MARS_RADIUS + LANDER_SIZE/2.0) * (MARS_RADIUS + LANDER_SIZE/2.0);
-    mu = (-b - sqrt(b*b-4.0*a*c))/(2.0*a);
-    position = last_position + mu*d;
-    simulation_time -= (1.0-mu)*delta_t; 
-    MoonAltitude = LANDER_SIZE/2.0;
     Landed = true;
     if ((fabs(climb_speed) > MAX_IMPACT_DESCENT_RATE) || (fabs(ground_speed) > MAX_IMPACT_GROUND_SPEED)) crashed = true;
     velocity_from_positions = vector3d(0.0, 0.0, 0.0);
@@ -1814,6 +1794,7 @@ void update_visualization (void)
 
   // Update record of lander's previous positions, but only if the position or the velocity has 
   // changed significantly since the last update
+  velocity_from_positions = (position - last_position) / delta_t;
   if ( !track.n || (position-last_track_position).norm() * velocity_from_positions.norm() < TRACK_ANGLE_DELTA
       || (position-last_track_position).abs() > TRACK_DISTANCE_DELTA ) {
     track.pos[track.p] = position;
