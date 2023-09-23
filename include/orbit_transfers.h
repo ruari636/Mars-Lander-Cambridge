@@ -31,8 +31,6 @@ void ChangePerigee(double NextPerigee);
 
 void ChangeApogee(double NextApogee);
 
-void PlanDeorbitIfInPermanentOrbit();
-
 void Deorbit();
 
 void CirculariseCurrentOrbit();

@@ -160,7 +160,7 @@ enum COPILOT_ACTION
   TAKINGINPUT,
   CUSTOMORBIT,
   GOTOMOON,
-  BIIMPULSIVEMOONTRANSFER,
+  MOONLANDER,
   DONOTHING,
   DEBUGHELPER
 };
@@ -175,6 +175,7 @@ extern int CurrentSelection;
 extern double InputApogee;
 extern double InputPerigee;
 extern vector3d MoonPos;
+extern vector3d MoonLastPos;
 extern vector3d MoonVel;
 extern vector3d MoonRelPos;
 extern vector3d FGravMars;

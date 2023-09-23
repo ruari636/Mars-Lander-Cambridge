@@ -134,7 +134,7 @@ double calculateFuelBurnedForNewApogee(double Apogee, double Perigee, double New
     return rocketEquationForFuel(v2, v1);
 }
 
-void PlanDeorbitIfInPermanentOrbit()
+void PlanDeorbitIfInPermanentOrbitMars()
 {
     if (HeightsUpdated) // This means we are in a permanent orbit as
                        // otherwise perigee and apogee wouldn't have been measured
@@ -157,8 +157,14 @@ void PlanDeorbitIfInPermanentOrbit()
 
 void Deorbit()
 {
-    PlanDeorbitIfInPermanentOrbit(); // Sets OrbitChangeBurn to true if a deorbit
-                                    // is possible with remaining fuel
+    if (MarsSphereOfInfluence)
+    {
+        PlanDeorbitIfInPermanentOrbitMars(); // Sets OrbitChangeBurn to true if a deorbit is possible with remaining fuel
+    }
+    else
+    {
+        ChangePerigee(LocalRadius * 0.95);
+    }
     OrbitChangeBurnerVel();
 }
 

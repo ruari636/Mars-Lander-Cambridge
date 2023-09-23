@@ -1754,10 +1754,11 @@ void update_visualization (void)
   simulation_time += delta_t;
   MarsAltitude = position.abs() - MARS_RADIUS;
   MoonAltitude = MoonRelPos.abs() - MOONRADIUS;
-
+  vector3d PositionToBody = MarsSphereOfInfluence ? position:position - MoonPos;
+  vector3d LastPositionToBody = MarsSphereOfInfluence ? last_position:last_position - MoonLastPos;
   // Use average of current and previous positions when calculating climb and ground speeds
-  av_p = MarsSphereOfInfluence ? (position + last_position).norm():(position + last_position - 2 * MoonPos).norm();
-  if (delta_t != 0.0) { velocity_from_positions = (position - last_position)/delta_t; }
+  av_p = (PositionToBody + LastPositionToBody).norm();
+  if (delta_t != 0.0) { velocity_from_positions = (PositionToBody - LastPositionToBody)/delta_t; }
   else velocity_from_positions = vector3d(0.0, 0.0, 0.0);
   climb_speed = velocity_from_positions*av_p;
   ground_speed = (velocity_from_positions - climb_speed*av_p).abs();
@@ -1773,7 +1774,7 @@ void update_visualization (void)
     mu = (-b - sqrt(b*b-4.0*a*c))/(2.0*a);
     position = last_position + mu*d;
     simulation_time -= (1.0-mu)*delta_t; 
-    MarsAltitude = LANDER_SIZE/2.0;
+    Altitude = LANDER_SIZE/2.0;
     Landed = true;
     if ((fabs(climb_speed) > MAX_IMPACT_DESCENT_RATE) || (fabs(ground_speed) > MAX_IMPACT_GROUND_SPEED)) crashed = true;
     velocity_from_positions = vector3d(0.0, 0.0, 0.0);
@@ -1955,9 +1956,9 @@ void reset_simulation (void)
   }
 
   // Visualisation routine's record of various speeds and velocities
-  velocity_from_positions = velocity;
-  last_position = position - delta_t*velocity_from_positions;
-  p = position.norm();
+  velocity_from_positions = OrbitVel;
+  last_position = (MarsSphereOfInfluence ? position:-MoonRelPos) - delta_t*velocity_from_positions;
+  p = MarsSphereOfInfluence ? position.norm():-MoonRelPos.norm();
   climb_speed = velocity_from_positions*p;
   tv = velocity_from_positions - climb_speed*p;
   ground_speed = tv.abs();

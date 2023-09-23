@@ -98,8 +98,13 @@ void ClampVelocity(double clamp) // assuming down is positive
 void ThrustProportionalToUnsafeVel()
 {
     double velMinusDesiredVel;
-    if (MarsAltitude > HEIGHTTOLANDINGSPEED) { velMinusDesiredVel = VelDescent + Kh * MarsAltitude + velocity * position.norm(); }
-    else velMinusDesiredVel = 0.5 + Kh * MarsAltitude + velocity * position.norm();
+    if (Altitude > HEIGHTTOLANDINGSPEED) 
+    { 
+        velMinusDesiredVel = VelDescent + (MarsSphereOfInfluence ? Kh:0.01) * Altitude + 
+        OrbitVel * (MarsSphereOfInfluence ? position.norm():(-MoonRelPos.norm()));
+    }
+    else if (MarsSphereOfInfluence) velMinusDesiredVel = 0.5 + Kh * Altitude + OrbitVel * (position.norm());
+    else velMinusDesiredVel = 0.5 + 0.01 * Altitude - OrbitVel * MoonRelPos.norm();
     bool TooFast = velMinusDesiredVel < 0.0;
     double Thrust_Desired = -velMinusDesiredVel * Kp + (MARS_MASS * LANDERMASS * GRAVITY) / (position.abs2() * MAX_THRUST);
     throttle = (TooFast == true) ? min((Thrust_Desired), 1.0):0.0;

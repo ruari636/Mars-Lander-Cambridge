@@ -195,7 +195,7 @@ VoidFunction HelpfulInformation(COPILOT_ACTION CurrentAction)
     curYpos = TEXTSTARTY;
     switch (CurrentAction)
     {
-        case GOTOMOON: case BIIMPULSIVEMOONTRANSFER:
+        case GOTOMOON: case MOONLANDER:
             return DisplayTransferStatus;
             break;
         case SUICIDELANDING:

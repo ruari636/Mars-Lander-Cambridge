@@ -46,13 +46,11 @@ void autopilot (void)
     switch (AUTO_NEXT)
     {
       case (PROPORTIONALLANDING):
-        FaceDirection(-velocity.norm());
         Deorbit();
         LandProportional();
         break;
 
       case (SUICIDELANDING):
-        FaceDirection(-velocity.norm());
         Deorbit();
         LandSuicide();
         break;
@@ -71,7 +69,8 @@ void autopilot (void)
       case (GOTOMOON):
         if (EscapePrevented)
         {
-          HoldUnstableOrbit(OrbitHeight);
+          Deorbit();
+          LandProportional();
         }
         else
         {
@@ -80,8 +79,11 @@ void autopilot (void)
         }
         break;
 
-      case (BIIMPULSIVEMOONTRANSFER):
-        ApproachMoon();
+      case (MOONLANDER):
+        if (EscapePrevented)
+        {
+          HoldUnstableOrbit(OrbitHeight);
+        }
         else
         {
           ApproachMoon();
@@ -113,12 +115,14 @@ vector3d Thrust;
 vector3d acceleration;
 vector3d MoonVel;
 vector3d OrbitVel;
+vector3d MoonLastPos;
 double RotationAngle;
 
 void numerical_dynamics (void)
   // This is the function that performs the numerical integration to update the
   // lander's pose. The time step is delta_t (global variable).
 {
+  MoonLastPos = MoonPos;
   MoonPos = {-MoonDistance * sin(MOONOMEGA * simulation_time), MoonDistance * cos(MOONOMEGA * simulation_time), 0.0};
   MoonVel = {-MoonDistance * MOONOMEGA * cos(MOONOMEGA * simulation_time), 
              -MoonDistance * MOONOMEGA * sin(MOONOMEGA * simulation_time), 0.0};
