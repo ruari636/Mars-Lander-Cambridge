@@ -19,7 +19,7 @@ void OrbitChangeBurnerVel();
 
 void OrbitChangeBurnerVel(vector3d dir);
 
-double calculateNewV(double Apogee, double Perigee, double CurDist);
+double VisVivaEquation(double Apogee, double Perigee, double CurDist);
 
 double rocketEquationForFuel(double v2, double v1);
 
@@ -41,7 +41,7 @@ double CalculateAngleXY(const vector3d& A, const vector3d& B, const vector3d& C)
 
 double KeplerPeriod(double SemiMajorAxis);
 
-void ApproachMoon();
+void ApproachMoon(double OrbitHeight);
 
 double HyperbolicPerigee();
 

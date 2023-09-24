@@ -1756,6 +1756,7 @@ void update_visualization (void)
   if (delta_t != 0.0) { velocity_from_positions = (PositionToBody - LastPositionToBody)/delta_t; }
   else velocity_from_positions = vector3d(0.0, 0.0, 0.0);
   climb_speed = velocity_from_positions*av_p;
+  climb_speed_mars = velocity_from_positions*((position + last_position).norm());
   ground_speed = (velocity_from_positions - climb_speed*av_p).abs();
 
   // Check to see whether the lander has Landed

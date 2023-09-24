@@ -70,22 +70,20 @@ void autopilot (void)
       case (GOTOMOON):
         if (EscapePrevented)
         {
-          //KillNormalVel();
-          HoldUnstableOrbit(OrbitHeight);
-          //Deorbit();
-          //LandSuicide();
+          //vector3d OrbitVelNormal = -MoonRelPos.norm() * (OrbitVel * -MoonRelPos.norm());
+          //vector3d OrbitVelTangential = OrbitVel - OrbitVelNormal;
+          //extern double VelStart, VelAim;
+          //    VelStart = OrbitVelTangential.abs();
+          //    VelAim = VisVivaEquation(OrbitHeight, OrbitHeight, OrbitHeight);
+          //    OrbitChangeBurn = true;
+
+          //// The normal component of the velocity can be largely ignored as we approach the moon at a sharp angle
+          //OrbitChangeBurnerVel(OrbitVelTangential.norm());
         }
         else
         {
-          if (HeightsUpdated && Lowest_Height - LocalRadius < 2E6)
-          {
-            MoveToOrbitInPlane(LocalRadius + 3E6, LocalRadius + 3E6);
-          }
-          else
-          {
-            ApproachMoon();
-            PreventMoonEscape();
-          }
+          if (MarsSphereOfInfluence) { ApproachMoon((Lowest_Height + Greatest_Height) / 2.0); }
+          //else { PreventMoonEscape(); }
         }
         break;
 
@@ -96,7 +94,7 @@ void autopilot (void)
         }
         else
         {
-          ApproachMoon();
+          ApproachMoon((Lowest_Height + Greatest_Height) / 2.0);
           PreventMoonEscape();
         }
 

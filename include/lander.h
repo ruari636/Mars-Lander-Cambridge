@@ -236,7 +236,7 @@ bool MoonSelectedAuto = false;
 // Lander state - the visualization routines use velocity_from_positions, so not sensitive to 
 // any errors in the velocity update in numerical_dynamics
 vector3d position, orientation, velocity, velocity_from_positions, last_position;
-double climb_speed, ground_speed, MarsAltitude, throttle, fuel;
+double climb_speed, climb_speed_mars, ground_speed, MarsAltitude, throttle, fuel;
 bool stabilized_attitude, autopilot_enabled, parachute_lost;
 parachute_status_t parachute_status;
 int stabilized_attitude_angle;
