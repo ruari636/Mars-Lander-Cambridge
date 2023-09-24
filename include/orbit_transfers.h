@@ -47,6 +47,8 @@ double HyperbolicPerigee();
 
 bool PreventMoonEscape();
 
+void KillNormalVel();
+
 void HoldUnstableOrbit(double radius);
 
 #endif

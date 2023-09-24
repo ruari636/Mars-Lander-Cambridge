@@ -138,7 +138,7 @@ void UpdateHeights()
 {
    previous_descending = descending;
    descending = signbit(climb_speed);
-   if (!descending && previous_descending && Altitude > EXOSPHERE) // we have just gone past the lowest point in the orbit, measure it
+   if (!descending && previous_descending) // we have just gone past the lowest point in the orbit, measure it
                                                                    // also due to orbital mechanics, when deorbiting the altitude can increase for a bit so an extra check was added
    {
         done |= LOWESTHEIGHTMEASUREDMASK;
@@ -190,7 +190,7 @@ void IterativeSuicideBurnEstimator()
 {
     for (int i = 0; i < 5; i++)
     {
-        ForceEstimate = MAX_THRUST - (MARS_MASS * avgLanderMassInBurn * GRAVITY) / (MARS_RADIUS * MARS_RADIUS);
+        ForceEstimate = MAX_THRUST - (MostImportantMass * avgLanderMassInBurn * GRAVITY) / (LocalRadius * LocalRadius);
         DragEstimate = (FDragLander.abs() + FDragChute.abs()) * (0.01) + (climb_speed * (6.0E-1)); //+ climb_speed * 5.5E-8)));// + climb_speed * 1.0E-8))); //(FDragLander.abs() + FDragChute.abs()) * 0.01;
         //double climb_speed = velocity * position.norm();
         EstimatedTimeToBurnSuicide = velocity.abs() / 
@@ -204,14 +204,15 @@ bool UpdateSuicideBurn()
 {
     if (velocity * position < -0.1)
     {
-        double KEMax = (MAX_THRUST - (MARS_MASS * LANDERMASS * GRAVITY) / (MARS_RADIUS * MARS_RADIUS)) * MarsAltitude; // Based on the work the lander can do against falling, neglecting drag and fuel usage reducing mass
+        double KEMax = (MAX_THRUST - (MostImportantMass * LANDERMASS * GRAVITY) / (LocalRadius * LocalRadius)) * Altitude; // Based on the work the lander can do against falling, neglecting drag and fuel usage reducing mass
         double VMax = sqrt(2 * KEMax / LANDERMASS); // If the velocity is below this, we must be able to start a suicide burn and stop, as drag is neglected in the calculation of KE_MAX
         if (!SuicideBurnStarted)
         {
             avgLanderMassInBurn = LANDERMASS;
             IterativeSuicideBurnEstimator();
             EnergyToBurn = (ForceEstimate + DragEstimate) * Altitude;
-            SuicideBurnStarted = (EnergyToBurn < KE && MarsAltitude < MAXSUICIDEBURNCHECKHEIGHT); // At 5km the max vel we can stop is
+            bool AltitudeChecked = MarsSphereOfInfluence ? MarsAltitude < MAXSUICIDEBURNCHECKHEIGHT:true; // don't check altitude if we aren't on mars as drag won't slow us
+            SuicideBurnStarted = (EnergyToBurn < KE && AltitudeChecked); // At 5km the max vel we can stop is
         }
         else if (velocity.abs() < VMax && Altitude > 5000.0) SuicideBurnStarted = false; // We entered the atmosphere so fast that suicide burn was triggered early
     }

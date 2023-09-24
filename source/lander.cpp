@@ -35,6 +35,7 @@ double DistanceFromMostImportantMass;
 double LocalRadius;
 extern bool EscapePrevented;
 extern double OrbitHeight;
+extern bool HeightsUpdated;
 
 void autopilot (void)
 {
@@ -69,13 +70,22 @@ void autopilot (void)
       case (GOTOMOON):
         if (EscapePrevented)
         {
-          Deorbit();
-          LandProportional();
+          //KillNormalVel();
+          HoldUnstableOrbit(OrbitHeight);
+          //Deorbit();
+          //LandSuicide();
         }
         else
         {
-          ApproachMoon();
-          PreventMoonEscape();
+          if (HeightsUpdated && Lowest_Height - LocalRadius < 2E6)
+          {
+            MoveToOrbitInPlane(LocalRadius + 3E6, LocalRadius + 3E6);
+          }
+          else
+          {
+            ApproachMoon();
+            PreventMoonEscape();
+          }
         }
         break;
 
@@ -214,8 +224,8 @@ void initialize_simulation (void)
     parachute_status = NOT_DEPLOYED;
     stabilized_attitude = false;
     autopilot_enabled = false;
-    MoonDistance = 36000000;
-    orbital_zoom = 0.22;
+    MoonDistance = 54000000;
+    orbital_zoom = 0.2;
     break;
 
   case 1:

@@ -170,7 +170,7 @@ void Deorbit()
 
 void ChangeApogee(double NextApogee)
 {
-    if (Altitude + LocalRadius <= Lowest_Height * 1.001 && (done & NEXTAPOGEEMET) == 0)
+    if (Altitude + LocalRadius <= Lowest_Height * 1.01 && (done & NEXTAPOGEEMET) == 0)
     {
         if ((done & ORBITCHANGECALCDONE) == 0)
         {
@@ -191,7 +191,7 @@ void ChangeApogee(double NextApogee)
 
 void ChangePerigee(double NextPerigee)
 {
-    if (Altitude + LocalRadius >= Greatest_Height * 0.999 && (done & NEXTPERIGEEMET) == 0) // Only run the burner when we are very close to apogee
+    if (Altitude + LocalRadius >= Greatest_Height * 0.99 && (done & NEXTPERIGEEMET) == 0) // Only run the burner when we are very close to apogee
     {
         if ((done & ORBITCHANGECALCDONE) == 0)
         {
@@ -264,7 +264,25 @@ double KeplerPeriod(double SemiMajorAxis)
     return 2 * M_PI * sqrt(pow(SemiMajorAxis, 3.0) * pow(GRAVITY * MostImportantMass, -1.0));
 }
 
-// @brief Entry conditions: circular orbit around Mars/Main body, velocity in this orbit measured, coplanar with moon
+double TimeToReachMoon(double ApogeeHeight, double MoonHeight, double OriginalRadius, double velocity)
+{
+    double L = pow(OriginalRadius * velocity, 2) / (GRAVITY * MARS_MASS);
+    double a = ApogeeHeight * 0.5 + OriginalRadius * 0.5;
+    double b = sqrt(L * a);
+    double AreaEllipse = M_PI * a * b;
+    double Theta = atan((MoonHeight + OriginalRadius - a)/a);
+    double AreaJourney = AreaEllipse / 4.0 + (Theta / (2 * M_PI)) * M_PI * a * b;
+    return KeplerPeriod(a) * AreaJourney / AreaEllipse;
+}
+
+double CalculateBurnTime(double deltaV)
+{
+    double massLossRate = FUEL_RATE_AT_MAX_THRUST * FUEL_DENSITY;
+    double exponentConst = exp(-deltaV * massLossRate / MAX_THRUST);
+    return LANDERMASS * (1 - exponentConst) / massLossRate;
+}
+
+// Entry conditions: circular orbit around Mars/Main body, velocity in this orbit measured, coplanar with moon
 void ApproachMoon()
 {
     if (!MoonApproachStarted && HeightsUpdated)
@@ -272,11 +290,22 @@ void ApproachMoon()
         CurAngle = CalculateAngleXY(position, vector3d(), MoonPos);
         ApogeeHeight = MoonDistance + 2 * MOONRADIUS;
         VelAim = calculateNewV(ApogeeHeight, Lowest_Height, Lowest_Height);
-        double JourneyTime = KeplerPeriod((MoonDistance - MOONRADIUS) / 2.0 + ((Greatest_Height + Lowest_Height) / 2.0) / 2.0) / 2.0; // use the moon distance instead of our calculated apogee for the apogee of the journey
-        // TODO: Account for Gravitational acceleration by moon by multiplying MaxJourneyTime by < 1.0
+        VelStart = velocity.abs();
+
+        double L = pow(Lowest_Height * velocity.abs(), 2) / (GRAVITY * MARS_MASS);
+        double a = ApogeeHeight * 0.5 + Lowest_Height * 0.5;
+        double b = sqrt(L * a);
+        double AreaEllipse = M_PI * a * b;
+        double ThetaCircle = atan((MoonDistance - 3 * MOONRADIUS + Lowest_Height - a)/a);
+        double ThetaEllipse = atan((MoonDistance - 3 * MOONRADIUS + Lowest_Height - a)/b);
+        double AreaJourney = AreaEllipse / 4.0 + (ThetaCircle / (2 * M_PI)) * M_PI * a * b;
+        double JourneyTime = KeplerPeriod(a) * AreaJourney / AreaEllipse;
+
         double AngleToBurn = M_PI - JourneyTime * MOONOMEGA; // Angle between lander and moon to place our perigee for the transfer
+        double BurnTime = CalculateBurnTime(VelAim - VelStart);
         double LanderOmega = velocity.abs() / position.abs();
-        AngleToBurn += LanderOmega * MOONRADIUS * 0.9 / (MOONOMEGA * MoonDistance * M_PI); // Account for radius in case moon is close to planet (but under account slightly for moons acceleration of lander)
+        AngleToBurn += BurnTime * LanderOmega * 0.5; // from lower energy orbits the burn time can be significant enough to break this function
+        AngleToBurn += MOONRADIUS / (MoonDistance) - (M_PI / 2.0 - ThetaEllipse); // Account for radius in case moon is close to planet (but under account slightly for moons acceleration of lander)
         while (AngleToBurn < 0) {
         AngleToBurn += 2 * M_PI;
         }
@@ -289,7 +318,6 @@ void ApproachMoon()
         if (MoonApproachStarted)
         {
             OrbitChangeBurn = true;
-            VelStart = velocity.abs();
         }
     }
     if (MoonApproachStarted)
@@ -348,7 +376,7 @@ bool PreventMoonEscape()
         MoonApproachPerigee = abs(HyperbolicPerigee());
         done |= MOONAPROACHBURNFINISHED; // status of Orbit_ChangeBurn will change once we start burning in here, hence the done flag
         MoonApproachStarted = false;
-        if ((MoonApproachPerigee > CurPerigeeCalculated) && Altitude < 3 * MOONRADIUS && !MarsSphereOfInfluence)
+        if ((MoonApproachPerigee > CurPerigeeCalculated) && !MarsSphereOfInfluence)
         {
             double dotProd = OrbitVel * (-MoonRelPos);
             double scalarProjection = dotProd / (MoonRelPos.abs() * OrbitVel.abs());
@@ -356,13 +384,13 @@ bool PreventMoonEscape()
             OrbitVelTangential = OrbitVel - OrbitVelNormal;
             if ((done & ORBITCHANGECALCDONE) == 0)
             { 
-                OrbitHeight = LocalRadius + Altitude;
+                OrbitHeight = (LocalRadius + Altitude);
                 VelStart = OrbitVelTangential.abs();
-                VelAim = calculateNewV(OrbitHeight, OrbitHeight, OrbitHeight);
-                velocity = OrbitVelTangential + MoonVel;
+                VelAim = calculateNewV(OrbitHeight, OrbitHeight, OrbitHeight) * 0.9;
                 OrbitChangeBurn = true;
                 done |= ORBITCHANGECALCDONE;
             }
+
             // The normal component of the velocity can be largely ignored as we approach the moon at a sharp angle
             OrbitChangeBurnerVel(OrbitVelTangential.norm());
             if (!OrbitChangeBurn)
@@ -376,8 +404,45 @@ bool PreventMoonEscape()
     return EscapePrevented;
 }
 
+extern double climb_speed;
+void KillNormalVel()
+{
+    double MaxMarsAffect = FGravMars.abs() / LANDERMASS;
+    if (abs(climb_speed) > MaxMarsAffect * 1.5)
+    {
+        VelAim = 0;
+        VelStart = (OrbitVel * -MoonRelPos.norm());
+        OrbitChangeBurn = true;
+    }
+    OrbitChangeBurnerVel(-MoonRelPos.norm());
+}
+
+bool ApogeeChangeQueued = false;
+bool PerigeeChangeQueued = false;
+extern bool descending;
+extern bool previous_descending;
 void HoldUnstableOrbit(double radius)
 {
-    if (Altitude + LocalRadius > radius * 1.2) { ChangeApogee(radius); } // make big changes, otherwise fuel is wasted or worst case, the orbit is broken
-    if (Altitude + LocalRadius < radius * 1.2) { ChangePerigee(radius); }
+    if (Altitude > (radius - LocalRadius) * 1.05) { ChangeApogee(radius); } // make big changes, otherwise fuel is wasted or worst case, the orbit is broken
+    if (Altitude < (radius - LocalRadius) / 1.05) { ChangePerigee(radius); }
+    return;
+    double ROppositeIfAtApoOrPerigee = (Altitude + LocalRadius) / 
+                    (1.0 - (2 * GRAVITY * MostImportantMass / (OrbitVel.abs2() * Altitude + LocalRadius)));
+    if (!descending && previous_descending) // we have just gone past the lowest point in the orbit
+    {
+        if (ROppositeIfAtApoOrPerigee < radius || ROppositeIfAtApoOrPerigee > radius * 1.01)
+        {
+            OrbitChangeBurn = true;
+            VelAim = calculateNewV(radius, Altitude + LocalRadius, Altitude + LocalRadius);
+        }
+    }
+    else if (descending && !previous_descending) // we have just gone past the highest point in the orbit
+    {
+        if (ROppositeIfAtApoOrPerigee < radius || ROppositeIfAtApoOrPerigee > radius * 1.01)
+        {
+            OrbitChangeBurn = true;
+            VelAim = calculateNewV(Altitude + LocalRadius, radius, Altitude + LocalRadius);
+        }        
+    }
+    OrbitChangeBurnerVel();
 }
