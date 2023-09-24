@@ -371,41 +371,50 @@ vector3d OrbitVelNormal;
 double MoonApproachPerigee;
 double OrbitHeight;
 bool EscapePrevented = false;
-extern double climb_speed_mars;
-bool mars_descending = false;
-bool mars_previous_descending = false;
 bool PreventMoonEscape()
 {
     if (EscapePrevented) return true;
-    mars_previous_descending = mars_descending;
-    mars_descending = signbit(climb_speed_mars);
-    if ((mars_descending && !mars_previous_descending) && MoonApproachStarted || (done & MOONAPROACHBURNFINISHED) == MOONAPROACHBURNFINISHED)
+    if ((MoonApproachStarted && !OrbitChangeBurn) || (done & MOONAPROACHBURNFINISHED) == MOONAPROACHBURNFINISHED)
     {
+        double CurPerigeeCalculated = MoonApproachPerigee;
+        // HyperbolicPerigee function isn't very accurate in terms of the number provided, likely due to the mars
+        // gravity being significant in all scenarios but is still very good at telling when we have reached
+        // the perigee as the number starts to rise once we pass it.
+        MoonApproachPerigee = abs(HyperbolicPerigee());
         done |= MOONAPROACHBURNFINISHED; // status of Orbit_ChangeBurn will change once we start burning in here, hence the done flag
-
-        OrbitVelNormal = -MoonRelPos.norm() * (OrbitVel * -MoonRelPos.norm());
-        OrbitVelTangential = OrbitVel - OrbitVelNormal;
-        if (MoonApproachStarted)
-        { 
-            OrbitHeight = (LocalRadius + Altitude);
-            VelStart = OrbitVel.abs();
-            VelAim = VisVivaEquation(OrbitHeight, OrbitHeight, OrbitHeight);
-            OrbitChangeBurn = true;
-            done |= ORBITCHANGECALCDONE;
-        }
         MoonApproachStarted = false;
-
-        // The normal component of the velocity can be largely ignored as we approach the moon at a sharp angle
-        OrbitChangeBurnerVel(OrbitVel.norm());
-        if (!OrbitChangeBurn)
+        if ((MoonApproachPerigee > CurPerigeeCalculated) && Altitude < 3 * MOONRADIUS && !MarsSphereOfInfluence)
         {
-            ClearHeights();
-            done &= !ORBITCHANGECALCDONE;
-            EscapePrevented = true;
+            double dotProd = OrbitVel * (-MoonRelPos);
+            double scalarProjection = dotProd / (MoonRelPos.abs() * OrbitVel.abs());
+            OrbitVelNormal = OrbitVel * scalarProjection;
+            OrbitVelTangential = OrbitVel - OrbitVelNormal;
+            if ((done & ORBITCHANGECALCDONE) == 0)
+            { 
+                OrbitHeight = LocalRadius + Altitude;
+                VelStart = OrbitVelTangential.abs();
+                VelAim = VisVivaEquation(OrbitHeight, OrbitHeight, OrbitHeight);
+                velocity = OrbitVelTangential + MoonVel;
+                OrbitChangeBurn = true;
+                done |= ORBITCHANGECALCDONE;
+            }
+            // The normal component of the velocity can be largely ignored as we approach the moon at a sharp angle
+            OrbitChangeBurnerVel(OrbitVelTangential.norm());
+            if (!OrbitChangeBurn)
+            {
+                ClearHeights();
+                done &= !ORBITCHANGECALCDONE;
+                EscapePrevented = true;
+            }
         }
-        
     }
     return EscapePrevented;
+}
+
+void HoldUnstableOrbit(double radius)
+{
+    if (Altitude + LocalRadius > radius * 1.2) { ChangeApogee(radius); } // make big changes, otherwise fuel is wasted or worst case, the orbit is broken
+    if (Altitude + LocalRadius < radius * 1.2) { ChangePerigee(radius); }
 }
 
 extern double climb_speed;
@@ -420,7 +429,7 @@ void KillNormalVel()
     }
     OrbitChangeBurnerVel(-MoonRelPos.norm());
 }
-
+/*
 bool ApogeeChangeQueued = false;
 bool PerigeeChangeQueued = false;
 extern bool descending;
@@ -449,4 +458,4 @@ void HoldUnstableOrbit(double radius)
         }        
     }
     OrbitChangeBurnerVel();
-}
+}*/
