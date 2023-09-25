@@ -805,14 +805,19 @@ void draw_instrument_window (void)
     glut_print(view_width+GAP+338, INSTRUMENT_HEIGHT-32, "PAUSED");
   }
 
-  // Draw status of moon gravity
-  if (MoonGravityEnabled)
+  // Write status of moon gravity
+  if (!Landed)
   {
-    glut_print(view_width + GAP - 200, 17, "Moon Gravity On");
-  }
-  else
-  {
-    glut_print(view_width + GAP - 200, 17, "Moon Gravity Off");
+    if (MoonGravityEnabled)
+    {
+      glColor3f(0.3, 1.0, 0.3);
+      glut_print(view_width + GAP - 200, 17, "Moon Gravity On");
+    }
+    else
+    {
+      glColor3f(1.0, 0.3, 0.3);
+      glut_print(view_width + GAP - 200, 17, "Moon Gravity Off");
+    }
   }
 
   // Display coordinates
@@ -2335,7 +2340,7 @@ void glut_key (unsigned char k, int x, int y)
   case 's': case 'S':
     // s or S - attitude stabilizer
     if (!autopilot_enabled && !Landed) stabilized_attitude = !stabilized_attitude;
-    if (autopilot_enabled && !Landed) AUTO_NEXT = SUICIDELANDING; InitialiseSpecialFunc();
+    if (autopilot_enabled && !Landed) { AUTO_NEXT = SUICIDELANDING; InitialiseSpecialFunc(); }
     if (paused) refresh_all_subwindows();
     break;
   

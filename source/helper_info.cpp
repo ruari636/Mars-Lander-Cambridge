@@ -75,14 +75,20 @@ void DisplayTransferStatus()
 {
   extern double AngleToStartBurn;
   extern double MoonApproachPerigee;
+  extern bool EscapePrevented;
+  extern double OrbitHeight;
   double AngFunc = CalculateAngleXY(position, vector3d(), MoonPos);
 
-  if (!InsufficientFuelText())
+  if (!InsufficientFuelText() && MarsSphereOfInfluence)
   {
     glut_print_helper(TEXTSTARTX, view_height-curYpos, "Relative Angle to Start Transfer - " + to_string(AngleToStartBurn)); curYpos += TEXTGAPHELP;
     glut_print_helper(TEXTSTARTX, view_height-curYpos, "Current Angle - " + to_string(AngFunc)); curYpos += TEXTGAPHELP;
     glut_print_helper(TEXTSTARTX, view_height-curYpos, "Fuel to Burn - " + to_string(abs(FuelToBurn))); curYpos += TEXTGAPHELP;
     glut_print_helper(TEXTSTARTX, view_height-curYpos, "Apogee aimed for - " + to_string(ApogeeHeight)); curYpos += TEXTGAPHELP;
+  }
+  if (EscapePrevented)
+  {
+    glut_print_helper(TEXTSTARTX, view_height-curYpos, "Orbitting near altitude - " + to_string((int)(OrbitHeight - LocalRadius)) + "m");
   }
 }
 

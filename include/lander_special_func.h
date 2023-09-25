@@ -9,7 +9,7 @@
 #define DRAGCONSTANT(Cd) -0.5 * atmospheric_density(position) * Cd * M_PI
 #define VELCONSTANT velocity.norm() * velocity.abs2()
 #define LANDERMASS (UNLOADED_LANDER_MASS + FUEL_DENSITY * fuel)
-#define Kp 0.66
+#define Kp 0.5
 #define Kh 0.05
 #define NSperLITRE (MAX_THRUST / FUEL_RATE_AT_MAX_THRUST)
 #define MAXSUICIDEBURNCHECKHEIGHT 7500

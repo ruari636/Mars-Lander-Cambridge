@@ -18,6 +18,7 @@ vector3d OrbitVelNormal;
 double MoonApproachPerigee;
 double OrbitHeight;
 bool EscapePrevented = false;
+extern bool EscapePreventionStarted;
 
 void InitialiseOrbitTransfers()
 {
@@ -29,6 +30,7 @@ void InitialiseOrbitTransfers()
     VelAim = 0.0;
     OrbitHeight = 0.0;
     EscapePrevented = false;
+    EscapePreventionStarted = false;
 }
 
 void OrbitChangeBurner()
@@ -139,43 +141,38 @@ double calculateFuelBurnedForNewApogee(double Apogee, double Perigee, double New
     return rocketEquationForFuel(v2, v1);
 }
 
-void PlanDeorbitIfInPermanentOrbitMars()
-{
-    if (HeightsUpdated) // This means we are in a permanent orbit as
-                       // otherwise perigee and apogee wouldn't have been measured
-    {
-        // Put us into a landing orbit
-        double NewPerigee = EXOSPHERE * 0.5 + MARS_RADIUS; // To use drag to slow us down
-        if (position.abs() > Greatest_Height * 0.99 && !OrbitChangeBurn)
-        {
-            // double fuelToBurn = -calculateFuelBurnedForNewPerigee(Greatest_Height, 
-            //                                                     Lowest_Height, NewPerigee);
-            // Planned_Fuel_Left = fuel - (fuelToBurn / (FUEL_CAPACITY * FUEL_DENSITY));
-            NewPerigee -= 0.0004 * 0.5 * (FGravMoon * velocity.norm()) * pow(KeplerPeriod((Greatest_Height + Lowest_Height) * 0.5), 2); // take into account moon cantankerous interference on perigee
-            VelStart = velocity.abs();
-            VelAim = VisVivaEquation(Greatest_Height, NewPerigee, Greatest_Height);
-            OrbitChangeBurn = true;
-            ClearHeights();
-        }
-    }
-}
-
+extern bool descending;
+extern bool previous_descending;
 void Deorbit()
 {
-    if (MarsSphereOfInfluence)
+    if (descending && !previous_descending)
     {
-        PlanDeorbitIfInPermanentOrbitMars(); // Sets OrbitChangeBurn to true if a deorbit is possible with remaining fuel
-    }
-    else
-    {
-        ChangePerigee(MOONRADIUS * 0.9);
+        double curV = velocity.abs();
+        double NewPerigee;
+        if (MarsSphereOfInfluence)
+        {
+            NewPerigee = 0.55 * EXOSPHERE + MARS_RADIUS;
+            if (MoonGravityEnabled)
+            {
+                // take into account moon cantankerous interference on perigee
+                NewPerigee -= 0.0004 * 0.5 * (FGravMoon * velocity.norm()) * pow(KeplerPeriod((Greatest_Height + Lowest_Height) * 0.5), 2);
+            }
+        }
+        else { NewPerigee = 0.9 * LocalRadius; }
+        double maxV = VisVivaEquation(Altitude + LocalRadius, NewPerigee, Altitude + LocalRadius);
+        if (maxV < curV)
+        {
+            VelAim = maxV;
+            VelStart = curV;
+            OrbitChangeBurn = true;
+        }
     }
     OrbitChangeBurnerVel();
 }
 
 void ChangeApogee(double NextApogee)
 {
-    if (Altitude + LocalRadius <= Lowest_Height * 1.001 && (done & NEXTAPOGEEMET) == 0)
+    if (Altitude + LocalRadius <= Lowest_Height * 1.01 && (done & NEXTAPOGEEMET) == 0)
     {
         if ((done & ORBITCHANGECALCDONE) == 0)
         {
@@ -196,7 +193,7 @@ void ChangeApogee(double NextApogee)
 
 void ChangePerigee(double NextPerigee)
 {
-    if (Altitude + LocalRadius >= Greatest_Height * 0.999 && (done & NEXTPERIGEEMET) == 0) // Only run the burner when we are very close to apogee
+    if (Altitude + LocalRadius >= Greatest_Height * 0.99 && (done & NEXTPERIGEEMET) == 0) // Only run the burner when we are very close to apogee
     {
         if ((done & ORBITCHANGECALCDONE) == 0)
         {

@@ -111,8 +111,8 @@ void ThrustProportionalToUnsafeVel()
     }
     else if (MarsSphereOfInfluence) velMinusDesiredVel = 0.5 + Kh * Altitude + OrbitVel * (position.norm());
     else velMinusDesiredVel = 0.5 + 0.01 * Altitude - OrbitVel * MoonRelPos.norm();
-    bool TooFast = velMinusDesiredVel < 0.0;
-    double Thrust_Desired = -velMinusDesiredVel * Kp + (MostImportantMass * LANDERMASS * GRAVITY) / 
+    bool TooFast = velMinusDesiredVel < 0.0;      // if moon gravity is on this can actually cause our lander to crash into mars
+    double Thrust_Desired = -velMinusDesiredVel * (MoonGravityEnabled ? Kp:0.66) + (MostImportantMass * LANDERMASS * GRAVITY) / 
                             (pow(Altitude + LocalRadius, 2) * MAX_THRUST);
     throttle = (TooFast == true) ? min((Thrust_Desired), 1.0):0.0;
 }
@@ -130,13 +130,16 @@ bool DistancesWithinError(double x0, double x1)
     double Error = 1.01;
     double OrbitTime = 0.0;
     if (HeightsUpdated) { OrbitTime = KeplerPeriod((Greatest_Height + Lowest_Height) / 2.0); }
-    if (MarsSphereOfInfluence)
+    if (MoonGravityEnabled)
     {
-        Error += (FGravMoon.abs() * OrbitTime * OrbitTime) / (x0 + x1);
-    }
-    else
-    {
-        Error += (FGravMars.abs() * OrbitTime * OrbitTime) / (x0 + x1);
+        if (MarsSphereOfInfluence)
+        {
+            Error += (FGravMoon.abs() * OrbitTime * OrbitTime) / (x0 + x1);
+        }
+        else
+        {
+            Error += (FGravMars.abs() * OrbitTime * OrbitTime) / (x0 + x1);
+        }
     }
     return x1 < x0 * Error && x1 > x0 / Error;
 }

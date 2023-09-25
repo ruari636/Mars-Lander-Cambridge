@@ -71,6 +71,7 @@ void autopilot (void)
       case (GOTOMOON):
         if (EscapePrevented)
         {
+          EscapePreventionStarted = false;
           HoldUnstableOrbit(OrbitHeight);
         }
         else
@@ -300,4 +301,5 @@ void initialize_simulation (void)
   }
   set_orbital_projection_matrix();
   refresh_all_subwindows();
+  Greatest_Height = position.abs(); // Slightly speeds up updating of heights if we are in a circular orbit
 }
