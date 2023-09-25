@@ -36,6 +36,7 @@ double LocalRadius;
 extern bool EscapePrevented;
 extern double OrbitHeight;
 extern bool HeightsUpdated;
+bool EscapePreventionStarted = false;
 
 void autopilot (void)
 {
@@ -75,7 +76,11 @@ void autopilot (void)
         else
         {
           if (MarsSphereOfInfluence) { ApproachMoon((Lowest_Height + Greatest_Height) / 2.0); }
-          else { PreventMoonEscape(); }
+          else if (MarsAltitude > MoonDistance - MOONRADIUS || EscapePreventionStarted) 
+          { 
+            PreventMoonEscape(); 
+            EscapePreventionStarted = true;
+          }
         }
         break;
 

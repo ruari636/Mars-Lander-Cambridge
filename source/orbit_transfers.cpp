@@ -4,20 +4,31 @@ extern bool HeightsUpdated;
 extern double MoonDistance;
 extern bool MarsSphereOfInfluence;
 int iterations = 0;
-double CircularOrbitVelocity = 0.0;
 double MostImportantMass;
 bool MoonApproachStarted = false;
 
 double CurAngle;
 double AngleToStartBurn;
-double FuelToBurn;
-double ApogeeHeight;
+double FuelToBurn = 0.0;
+double ApogeeHeight = 0.0;
 double VelStart;
 double VelAim;
+vector3d OrbitVelTangential;
+vector3d OrbitVelNormal;
+double MoonApproachPerigee;
+double OrbitHeight;
+bool EscapePrevented = false;
 
 void InitialiseOrbitTransfers()
 {
     iterations = 0;
+    MoonApproachStarted = false;
+    FuelToBurn = 0.0;
+    ApogeeHeight = 0.0;
+    VelStart = 0.0;
+    VelAim = 0.0;
+    OrbitHeight = 0.0;
+    EscapePrevented = false;
 }
 
 void OrbitChangeBurner()
@@ -157,7 +168,7 @@ void Deorbit()
     }
     else
     {
-        ChangePerigee(LocalRadius * 0.95);
+        ChangePerigee(MOONRADIUS * 0.9);
     }
     OrbitChangeBurnerVel();
 }
@@ -309,7 +320,8 @@ void ApproachMoon(double OrbitHeight)
         double BurnTime = CalculateBurnTime(VelAim - VelStart);
         double LanderOmega = velocity.abs() / position.abs();
         AngleToStartBurn += BurnTime * LanderOmega * 0.5; // from lower energy orbits the burn time can be significant enough to break this function
-        AngleToStartBurn += MOONRADIUS / MoonDistance; // We want to show up slightly behind the moon and boost into an orbit with it
+        AngleToStartBurn += 1.5 * MOONRADIUS / MoonDistance; // We want to show up slightly behind the moon and boost into an orbit with it
+
 
         //double ThetaEllipse = atan(MoonDistance /  // Not necessary really, and not always reliable
         //                        (b / a *  sqrt(a * a - pow((MoonDistance + OrbitHeight - a), 2))));
@@ -366,11 +378,6 @@ double HyperbolicPerigee()
     return periapsis;
 }
 
-vector3d OrbitVelTangential;
-vector3d OrbitVelNormal;
-double MoonApproachPerigee;
-double OrbitHeight;
-bool EscapePrevented = false;
 bool PreventMoonEscape()
 {
     if (EscapePrevented) return true;

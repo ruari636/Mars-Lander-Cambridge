@@ -2316,19 +2316,20 @@ void glut_key (unsigned char k, int x, int y)
   case 'p': case 'P':
     // p or P - deploy parachute
     if (!autopilot_enabled && !Landed && (parachute_status == NOT_DEPLOYED)) parachute_status = DEPLOYED;
-    if (autopilot_enabled && !Landed) AUTO_NEXT = PROPORTIONALLANDING;
+    if (autopilot_enabled && !Landed) AUTO_NEXT = PROPORTIONALLANDING; InitialiseSpecialFunc();
     if (paused) refresh_all_subwindows();
     break;
 
   case 's': case 'S':
     // s or S - attitude stabilizer
     if (!autopilot_enabled && !Landed) stabilized_attitude = !stabilized_attitude;
-    if (autopilot_enabled && !Landed) AUTO_NEXT = SUICIDELANDING;
+    if (autopilot_enabled && !Landed) AUTO_NEXT = SUICIDELANDING; InitialiseSpecialFunc();
     if (paused) refresh_all_subwindows();
     break;
   
   case 'o': case 'O':
     if (autopilot_enabled && !Landed) AUTO_NEXT = CIRCULARISEORBIT;
+    InitialiseOrbitTransfers();
     break;
 
   case 'c': case 'C':
@@ -2362,11 +2363,13 @@ void glut_key (unsigned char k, int x, int y)
         InputPerigee += LocalRadius;
       }
       AUTO_NEXT = CUSTOMORBIT;
+      InitialiseOrbitTransfers();
     }
     break;
 
   case 'g': case 'G':
     AUTO_NEXT = GOTOMOON;
+    InitialiseOrbitTransfers();
     break;
   
   case 'x': case 'X':
