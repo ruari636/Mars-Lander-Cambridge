@@ -188,7 +188,7 @@ void initialize_simulation (void)
   AUTO_NEXT = DONOTHING;
   RotationAngle = 0.0;
   CurrentSelection = 0;
-  MoonGravityEnabled = true;
+  MoonGravityEnabled = false;
   MoonDistance = 20 * MARS_RADIUS;
   orbital_zoom = 0.15;
   // The parameters to set are:
@@ -298,8 +298,6 @@ void initialize_simulation (void)
     break;
 
   }
-  Lowest_Height = position.abs();
-  Greatest_Height = position.abs();
   set_orbital_projection_matrix();
   refresh_all_subwindows();
 }

@@ -187,6 +187,7 @@ extern double Altitude;
 extern double orbital_zoom;
 extern double DistanceFromMostImportantMass;
 extern double LocalRadius;
+extern bool MoonGravityEnabled;
 
 //********************************************************************//
 

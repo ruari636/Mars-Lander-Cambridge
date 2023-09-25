@@ -175,7 +175,7 @@ void Deorbit()
 
 void ChangeApogee(double NextApogee)
 {
-    if (Altitude + LocalRadius <= Lowest_Height * 1.01 && (done & NEXTAPOGEEMET) == 0)
+    if (Altitude + LocalRadius <= Lowest_Height * 1.001 && (done & NEXTAPOGEEMET) == 0)
     {
         if ((done & ORBITCHANGECALCDONE) == 0)
         {
@@ -196,7 +196,7 @@ void ChangeApogee(double NextApogee)
 
 void ChangePerigee(double NextPerigee)
 {
-    if (Altitude + LocalRadius >= Greatest_Height * 0.99 && (done & NEXTPERIGEEMET) == 0) // Only run the burner when we are very close to apogee
+    if (Altitude + LocalRadius >= Greatest_Height * 0.999 && (done & NEXTPERIGEEMET) == 0) // Only run the burner when we are very close to apogee
     {
         if ((done & ORBITCHANGECALCDONE) == 0)
         {

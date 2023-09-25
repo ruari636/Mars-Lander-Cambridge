@@ -805,6 +805,16 @@ void draw_instrument_window (void)
     glut_print(view_width+GAP+338, INSTRUMENT_HEIGHT-32, "PAUSED");
   }
 
+  // Draw status of moon gravity
+  if (MoonGravityEnabled)
+  {
+    glut_print(view_width + GAP - 200, 17, "Moon Gravity On");
+  }
+  else
+  {
+    glut_print(view_width + GAP - 200, 17, "Moon Gravity Off");
+  }
+
   // Display coordinates
   glColor3f(1.0, 1.0, 1.0);
   s.str(""); s << "x position " << fixed << position.x << " m";
@@ -941,6 +951,7 @@ void display_help_text (void)
     glut_print(TEXTSTARTX, view_height-curYpos, "s - begin suicide landing"); curYpos += TEXTGAP;
     glut_print(TEXTSTARTX, view_height-curYpos, "p - begin proportional landing"); curYpos += TEXTGAP;
     glut_print(TEXTSTARTX, view_height-curYpos, "o - efficiently circularise current orbit from apogee"); curYpos += TEXTGAP;
+    glut_print(TEXTSTARTX, view_height-curYpos, "g - go to the moon (moon gravity recommended)"); curYpos += TEXTGAP;
   }
   else
   {
@@ -954,6 +965,7 @@ void display_help_text (void)
   glut_print(TEXTSTARTX, view_height-curYpos, "m - change orbital view selection"); curYpos += TEXTGAP;
   glut_print(TEXTSTARTX, view_height-curYpos, "l - toggle lighting model"); curYpos += TEXTGAP;
   glut_print(TEXTSTARTX, view_height-curYpos, "t - toggle terrain texture"); curYpos += TEXTGAP;
+  glut_print(TEXTSTARTX, view_height-curYpos, "f - toggle moon gravity"); curYpos += TEXTGAP;
   glut_print(TEXTSTARTX, view_height-curYpos, "Esc/q - quit"); curYpos += NEWLINE;
 
   j = 0;
@@ -2372,6 +2384,10 @@ void glut_key (unsigned char k, int x, int y)
     InitialiseOrbitTransfers();
     break;
   
+  case 'f': case 'F':
+    MoonGravityEnabled = !MoonGravityEnabled;
+    break;
+
   case 'x': case 'X':
     if (AUTO_NEXT = TAKINGINPUT)
     {
