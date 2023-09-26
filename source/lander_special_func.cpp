@@ -264,7 +264,7 @@ void LandSuicide()
     {
         if (SuicideBurnStarted)
         {
-            FaceDirection(-velocity.norm());
+            FaceDirection(-OrbitVel.norm());
             AutoDeployParachuteWhenReady();
             ThrustProportionalToUnsafeVel();
         }
@@ -277,7 +277,7 @@ void LandProportional()
     AutoDeployParachuteWhenReady();
     if (!OrbitChangeBurn) 
     {
-        FaceDirection(-velocity.norm());
+        FaceDirection(-OrbitVel.norm());
         ThrustProportionalToUnsafeVel();
     }
 }
