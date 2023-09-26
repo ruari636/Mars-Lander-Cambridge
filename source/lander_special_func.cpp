@@ -213,7 +213,7 @@ void IterativeSuicideBurnEstimatorMoon()
         EstimatedTimeToBurnSuicide = abs(VelVert) / 
             (ForceEstimate / avgLanderMassInBurn); // t = -u/a when v = 0
         avgLanderMassInBurn = LANDERMASS - 
-                (EstimatedTimeToBurnSuicide * FUEL_RATE_AT_MAX_THRUST * FUEL_DENSITY) / 1.6;
+                (EstimatedTimeToBurnSuicide * FUEL_RATE_AT_MAX_THRUST * FUEL_DENSITY) / 1.7;
     }
 }
 
@@ -259,7 +259,7 @@ bool UpdateSuicideBurn()
 
 void LandSuicide()
 {    
-    KE = 0.5 * LANDERMASS * velocity.abs2();
+    KE = 0.5 * LANDERMASS * OrbitVel.abs2();
     if (!OrbitChangeBurn)
     {
         if (SuicideBurnStarted)
