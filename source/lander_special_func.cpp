@@ -20,6 +20,7 @@ double DragEstimate;
 double ForceEstimate;
 double KE;
 double EstimatedTimeToBurnSuicide;
+double Thrust_Desired;
 
 void InitialiseSpecialFunc()
 {
@@ -34,6 +35,7 @@ void InitialiseSpecialFunc()
     Planned_Fuel_Left = fuel;
     avgLanderMassInBurn = LANDERMASS;
     throttle = 0.0;
+    Thrust_Desired = 0.0;
 }
 
 void ResetAutoPilot()
@@ -112,7 +114,7 @@ void ThrustProportionalToUnsafeVel()
     else if (MarsSphereOfInfluence) velMinusDesiredVel = 0.5 + Kh * Altitude + OrbitVel * (position.norm());
     else velMinusDesiredVel = 0.5 + 0.01 * Altitude - OrbitVel * MoonRelPos.norm();
     bool TooFast = velMinusDesiredVel < 0.0;      // if moon gravity is on this can actually cause our lander to crash into mars
-    double Thrust_Desired = -velMinusDesiredVel * (MoonGravityEnabled ? Kp:0.66) + (MostImportantMass * LANDERMASS * GRAVITY) / 
+    Thrust_Desired = -velMinusDesiredVel * (MoonGravityEnabled ? Kp:0.66) + (MostImportantMass * LANDERMASS * GRAVITY) / 
                             (pow(Altitude + LocalRadius, 2) * MAX_THRUST);
     throttle = (TooFast == true) ? min((Thrust_Desired), 1.0):0.0;
 }
@@ -270,6 +272,7 @@ void LandSuicide()
     {
         if (SuicideBurnStarted)
         {
+            FaceDirection(-velocity.norm());
             AutoDeployParachuteWhenReady();
             ThrustProportionalToUnsafeVel();
         }
@@ -280,5 +283,9 @@ void LandSuicide()
 void LandProportional()
 {
     AutoDeployParachuteWhenReady();
-    if (!OrbitChangeBurn) ThrustProportionalToUnsafeVel();
+    if (!OrbitChangeBurn) 
+    {
+        FaceDirection(-velocity.norm());
+        ThrustProportionalToUnsafeVel();
+    }
 }

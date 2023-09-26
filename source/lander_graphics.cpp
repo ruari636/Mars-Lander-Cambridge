@@ -957,6 +957,7 @@ void display_help_text (void)
     glut_print(TEXTSTARTX, view_height-curYpos, "p - begin proportional landing"); curYpos += TEXTGAP;
     glut_print(TEXTSTARTX, view_height-curYpos, "o - efficiently circularise current orbit from apogee"); curYpos += TEXTGAP;
     glut_print(TEXTSTARTX, view_height-curYpos, "g - go to the moon (moon gravity recommended)"); curYpos += TEXTGAP;
+    glut_print(TEXTSTARTX, view_height-curYpos, "x - cancel current autopilot activity"); curYpos += TEXTGAP;
   }
   else
   {
@@ -1389,20 +1390,27 @@ void draw_closeup_window (void)
   // At transition_altitude we have a totally opaque haze, to disguise the transition from spherical surface to flat surface.
   // Below transition_altitude, we can see as far as the horizon (or transition_altitude with no terrain texture), 
   // with the fog decreasing towards touchdown.
-  if (MarsAltitude > EXOSPHERE) gluPerspective(CLOSEUP_VIEW_ANGLE, aspect_ratio, 1.0, closeup_offset + 2.0*MARS_RADIUS);
+  if (Altitude > EXOSPHERE) gluPerspective(CLOSEUP_VIEW_ANGLE, aspect_ratio, 1.0, closeup_offset + 2.0*MARS_RADIUS);
   else {
-    horizon = sqrt(position.abs2() - MARS_RADIUS*MARS_RADIUS);
-    if (MarsAltitude > transition_altitude) {
+    horizon = sqrt(position.abs2() - LocalRadius*LocalRadius);
+    if (Altitude > transition_altitude) 
+    {
       f = (MarsAltitude-transition_altitude) / (EXOSPHERE-transition_altitude);
       if (f < SMALL_NUM) fog_density = 1000.0; else fog_density = (1.0-f) / (f*horizon);
       view_depth = closeup_offset + horizon;
-    } else {
+    } 
+    else 
+    {
       f = 1.0 - (MarsAltitude / transition_altitude);
       if (f < SMALL_NUM) fog_density = 1000.0; else fog_density = (1.0-f) / (f*transition_altitude);
       if (do_texture) {
 	fog_density = 0.00005 + 0.5*fog_density;
 	view_depth = closeup_offset + horizon;
       } else view_depth = closeup_offset + transition_altitude;
+    }
+    if (!MarsSphereOfInfluence)
+    {
+      fog_density = 0.0;
     }
     gluPerspective(CLOSEUP_VIEW_ANGLE, aspect_ratio, 1.0, view_depth);
     glFogf(GL_FOG_DENSITY, fog_density);
@@ -2394,10 +2402,7 @@ void glut_key (unsigned char k, int x, int y)
     break;
 
   case 'x': case 'X':
-    if (AUTO_NEXT = TAKINGINPUT)
-    {
-      AUTO_NEXT = DONOTHING;
-    }
+    AUTO_NEXT = DONOTHING;
     break;
 
   case 'r': case 'R':

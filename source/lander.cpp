@@ -85,17 +85,6 @@ void autopilot (void)
         }
         break;
 
-      case (MOONLANDER):
-        if (EscapePrevented)
-        {
-          HoldUnstableOrbit(OrbitHeight);
-        }
-        else
-        {
-          ApproachMoon((Lowest_Height + Greatest_Height) / 2.0);
-          PreventMoonEscape();
-        }
-
       case (DONOTHING):
         break;
 

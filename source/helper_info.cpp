@@ -37,12 +37,12 @@ void NothingToShow()
 
 bool InsufficientFuelText()
 {
-    bool insufficient = abs(FuelToBurn) > fuel;
+    bool insufficient = abs(FuelToBurn) > fuel || fuel == 0.0;
     if (insufficient)
     {
         glRasterPos2f(TEXTSTARTX, TEXTSTARTY);
-        string ss = "Insufficient Fuel. Unable to Initiate Manouvre.";
-        for (int i = 0; i < ss.length(); i++) glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, ss[i]);
+        string ss = "Insufficient Fuel. Unable to Initiate Manouvre. Press r to refuel";
+        for (int i = 0; i < ss.length(); i++) glutBitmapCharacter(GLUT_BITMAP_9_BY_15, ss[i]);
     }
     return insufficient;
 }
@@ -94,58 +94,61 @@ void DisplayTransferStatus()
 
 void KEandEstimatedSuicideBurnWork()
 {
-    if (SuicideBurnStarted)
+    if (!InsufficientFuelText())
     {
-        if (!TimerStarted)
+        if (SuicideBurnStarted)
         {
-            StartTimer = simulation_time;
-        }
-        TimerStarted = true;
-    }
-    if (!Landed || TimerStopped)
-    {
-        glut_print_helper(TEXTSTARTX, view_height-curYpos, "Current KE : ");
-        glut_print_helper(TEXTSTARTX + 400, view_height-curYpos, to_string((int)KE)); curYpos += TEXTGAPHELP;
-        if (Altitude < MAXSUICIDEBURNCHECKHEIGHT * 2)
-        {
-            glut_print_helper(TEXTSTARTX, view_height-curYpos, "Estimated resistive work available : ");
-            glut_print_helper(TEXTSTARTX + 400, view_height-curYpos,
-                                 to_string((int)EnergyToBurn)); curYpos += TEXTGAPHELP;
             if (!TimerStarted)
             {
-                if (Altitude < 2000) {
-                    glut_print_helper(TEXTSTARTX, view_height-curYpos, "Estimated time to landing : "); 
-                    glut_print_helper(TEXTSTARTX + 400, view_height-curYpos, to_string(EstimatedTimeToBurnSuicide)); curYpos += TEXTGAPHELP; 
-                }
-                EstimatedTimeToBurnSuicideSave = EstimatedTimeToBurnSuicide;
+                StartTimer = simulation_time;
             }
-            else
+            TimerStarted = true;
+        }
+        if (!Landed || TimerStopped)
+        {
+            glut_print_helper(TEXTSTARTX, view_height-curYpos, "Current KE : ");
+            glut_print_helper(TEXTSTARTX + 400, view_height-curYpos, to_string((int)KE)); curYpos += TEXTGAPHELP;
+            if (Altitude < MAXSUICIDEBURNCHECKHEIGHT * 2)
             {
-                    glut_print_helper(TEXTSTARTX, view_height-curYpos, "Estimated time to landing : "); 
-                    glut_print_helper(TEXTSTARTX + 400, view_height-curYpos, to_string(EstimatedTimeToBurnSuicideSave)); curYpos += TEXTGAPHELP;                
+                glut_print_helper(TEXTSTARTX, view_height-curYpos, "Estimated resistive work available : ");
+                glut_print_helper(TEXTSTARTX + 400, view_height-curYpos,
+                                    to_string((int)EnergyToBurn)); curYpos += TEXTGAPHELP;
+                if (!TimerStarted)
+                {
+                    if (Altitude < 2000) {
+                        glut_print_helper(TEXTSTARTX, view_height-curYpos, "Estimated time to landing : "); 
+                        glut_print_helper(TEXTSTARTX + 400, view_height-curYpos, to_string(EstimatedTimeToBurnSuicide)); curYpos += TEXTGAPHELP; 
+                    }
+                    EstimatedTimeToBurnSuicideSave = EstimatedTimeToBurnSuicide;
+                }
+                else
+                {
+                        glut_print_helper(TEXTSTARTX, view_height-curYpos, "Estimated time to landing : "); 
+                        glut_print_helper(TEXTSTARTX + 400, view_height-curYpos, to_string(EstimatedTimeToBurnSuicideSave)); curYpos += TEXTGAPHELP;                
+                }
+            }
+            if (TimerStarted)
+            {
+                glut_print_helper(TEXTSTARTX, view_height-curYpos, "Time since suicide burn started : ");
+                glut_print_helper(TEXTSTARTX + 400, view_height-curYpos,
+                                    to_string(simulation_time - StartTimer)); curYpos += TEXTGAPHELP;
+            }
+            if (TimerStopped)
+            {
+                glut_print_helper(TEXTSTARTX, view_height-curYpos, "Time since suicide burn : ");
+                glut_print_helper(TEXTSTARTX + 400, view_height-curYpos,
+                                    to_string(StopTimer - StartTimer)); curYpos += TEXTGAPHELP;
             }
         }
-        if (TimerStarted)
+        else
         {
-            glut_print_helper(TEXTSTARTX, view_height-curYpos, "Time since suicide burn started : ");
-            glut_print_helper(TEXTSTARTX + 400, view_height-curYpos,
-                                 to_string(simulation_time - StartTimer)); curYpos += TEXTGAPHELP;
+            if (!TimerStopped)
+            {
+                StopTimer = simulation_time;
+            }
+            TimerStopped = true;
+            TimerStarted = false;
         }
-        if (TimerStopped)
-        {
-            glut_print_helper(TEXTSTARTX, view_height-curYpos, "Time since suicide burn : ");
-            glut_print_helper(TEXTSTARTX + 400, view_height-curYpos,
-                                 to_string(StopTimer - StartTimer)); curYpos += TEXTGAPHELP;
-        }
-    }
-    else
-    {
-        if (!TimerStopped)
-        {
-            StopTimer = simulation_time;
-        }
-        TimerStopped = true;
-        TimerStarted = false;
     }
 }
 
@@ -157,7 +160,7 @@ void display_input_interface (void)
     if (RadiusAdded) { glut_print_helper(TEXTSTARTX, view_height-curYpos - TEXTGAPHELP, "Radius Included"); }
 
     glut_print_helper_medium(curXpos, TEXTSTARTY + NEWLINE, "New Apogee Alt: ");
-    glut_print_helper_medium(curXpos + 5, TEXTSTARTY, " .");
+    glut_print_helper(curXpos + 5, TEXTSTARTY, " .");
     for (int i = 0; i < INPUTRESOLUTION; i++)
     {
         glut_print_helper_medium(curXpos, TEXTSTARTY, to_string(CustomOrbitInput[i]));
@@ -167,7 +170,7 @@ void display_input_interface (void)
 
     curXpos += 90;
     glut_print_helper_medium(curXpos, TEXTSTARTY + NEWLINE, "New Perigee Alt: ");
-    glut_print_helper_medium(curXpos + 5, TEXTSTARTY, " .");
+    glut_print_helper(curXpos + 5, TEXTSTARTY, " .");
     for (int i = INPUTRESOLUTION + 1; i < 2 * INPUTRESOLUTION + 1; i++)
     {
         glut_print_helper_medium(curXpos, TEXTSTARTY, to_string(CustomOrbitInput[i]));
@@ -189,11 +192,38 @@ void display_dev_info()
 
 void CustomOrbitInfo()
 {
-    int curYpos = TEXTSTARTY;
-    glut_print_helper(TEXTSTARTX, view_height - curYpos, "Input Apogee : " + to_string(InputApogee)); curYpos += NEWLINE;
-    glut_print_helper(TEXTSTARTX, view_height - curYpos, "Input Perigee : " + to_string(InputPerigee)); curYpos += NEWLINE;
-    glut_print_helper(TEXTSTARTX, view_height - curYpos, "Max Altitude : " + to_string(InputApogee - LocalRadius)); curYpos += NEWLINE;
-    glut_print_helper(TEXTSTARTX, view_height - curYpos, "Min Altitude : " + to_string(InputPerigee - LocalRadius)); curYpos += NEWLINE;
+    if (!InsufficientFuelText())
+    {
+        int curYpos = TEXTSTARTY;
+        glut_print_helper(TEXTSTARTX, view_height - curYpos, "Input Apogee : " + to_string(InputApogee)); curYpos += NEWLINE;
+        glut_print_helper(TEXTSTARTX, view_height - curYpos, "Input Perigee : " + to_string(InputPerigee)); curYpos += NEWLINE;
+        glut_print_helper(TEXTSTARTX, view_height - curYpos, "Max Altitude : " + to_string(InputApogee - LocalRadius)); curYpos += NEWLINE;
+        glut_print_helper(TEXTSTARTX, view_height - curYpos, "Min Altitude : " + to_string(InputPerigee - LocalRadius)); curYpos += NEWLINE;
+    }
+}
+
+void CirculariseOrbitInfo()
+{
+    if (!InsufficientFuelText())
+    {
+        int curYpos = TEXTSTARTY;
+        glut_print_helper(TEXTSTARTX, view_height - curYpos, "Circularising around Apogee : " + to_string((int)(Greatest_Height - LocalRadius)) + "m"); curYpos += NEWLINE;
+        glut_print_helper(TEXTSTARTX, view_height - curYpos, "Press x to exit when happy"); curYpos += NEWLINE;
+    }    
+}
+
+extern double Thrust_Desired;
+void ProportionalLandingInfo()
+{
+    if (!InsufficientFuelText())
+    {
+        int curYpos = TEXTSTARTY;
+        glut_print_helper(TEXTSTARTX, view_height - curYpos, "I am a very inneficient way to land, please use s while in autopilot to use a suicide landing"); curYpos += NEWLINE;
+        if (Altitude < EXOSPHERE)
+        {
+            glut_print_helper_medium(TEXTSTARTX, view_height - curYpos, "Current thrust required: " + to_string((int)(Thrust_Desired * MAX_THRUST))); curYpos += NEWLINE;
+        }
+    }
 }
 
 VoidFunction HelpfulInformation(COPILOT_ACTION CurrentAction)
@@ -201,9 +231,10 @@ VoidFunction HelpfulInformation(COPILOT_ACTION CurrentAction)
     curYpos = TEXTSTARTY;
     switch (CurrentAction)
     {
-        case GOTOMOON: case MOONLANDER:
+        case GOTOMOON:
             return DisplayTransferStatus;
-            break;
+        case PROPORTIONALLANDING:
+            return ProportionalLandingInfo;
         case SUICIDELANDING:
             return KEandEstimatedSuicideBurnWork;
         case TAKINGINPUT:
@@ -212,6 +243,8 @@ VoidFunction HelpfulInformation(COPILOT_ACTION CurrentAction)
             return display_dev_info;
         case CUSTOMORBIT:
             return CustomOrbitInfo;
+        case CIRCULARISEORBIT:
+            return CirculariseOrbitInfo;
         default:
             return NothingToShow;
     }

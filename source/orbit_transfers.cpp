@@ -214,8 +214,10 @@ void ChangePerigee(double NextPerigee)
 
 void CirculariseCurrentOrbit()
 {
-    if (HeightsUpdated && (Greatest_Height - Lowest_Height) / Greatest_Height > 0.01) // We have collected current data on Apogee and Perigee and the height difference is outside of error margin
+    if (HeightsUpdated && (Greatest_Height - Lowest_Height) / Greatest_Height > 0.02) // We have collected current data on Apogee and Perigee and the height difference is outside of error margin
     {
+        if (!OrbitChangeBurn)
+        { done &= !NEXTPERIGEEMET; }
         ChangePerigee(Greatest_Height); // Burns near Apogee to raise Perigee to be roughly equal
     }
 }
