@@ -28,8 +28,6 @@ vector3d VecAtAngleToPosInPlane(double angle);
 
 bool ReachedEscapeVelocity();
 
-void PreventLanderEscape();
-
 void ClampVelocity(double clamp);
 
 void ThrustProportionalToUnsafeVel();

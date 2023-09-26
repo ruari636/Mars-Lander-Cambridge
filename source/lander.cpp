@@ -43,7 +43,6 @@ void autopilot (void)
   if (simulation_time > 5.0) // Gives it some time to stabilise before we measure and use data
   {
     UpdateHeights();
-    PreventLanderEscape(); // We don't want to fly away forever
     
     switch (AUTO_NEXT)
     {

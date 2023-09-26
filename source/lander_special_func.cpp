@@ -89,14 +89,6 @@ bool ReachedEscapeVelocity()
     return velocity.abs2() > 2.0 * GRAVITY * MARS_MASS / position.abs();
 }
 
-void PreventLanderEscape()
-{
-    if (ReachedEscapeVelocity())
-    {
-        // throttle = 1.0;
-    }
-}
-
 void ClampVelocity(double clamp) // assuming down is positive
 {
     if (velocity * position <= 0.0) throttle = (velocity.abs() > clamp) ? 1.0:0.0;

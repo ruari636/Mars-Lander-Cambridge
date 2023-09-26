@@ -956,7 +956,8 @@ void display_help_text (void)
     glut_print(TEXTSTARTX, view_height-curYpos, "s - begin suicide landing"); curYpos += TEXTGAP;
     glut_print(TEXTSTARTX, view_height-curYpos, "p - begin proportional landing"); curYpos += TEXTGAP;
     glut_print(TEXTSTARTX, view_height-curYpos, "o - efficiently circularise current orbit from apogee"); curYpos += TEXTGAP;
-    glut_print(TEXTSTARTX, view_height-curYpos, "g - go to the moon (moon gravity recommended)"); curYpos += TEXTGAP;
+    glut_print(TEXTSTARTX, view_height-curYpos, "c - enter a custom orbit with chosen apogee and perigee"); curYpos += TEXTGAP;
+    glut_print(TEXTSTARTX, view_height-curYpos, "g - go to the moon (moon gravity recommended)"); curYpos += NEWLINE;
     glut_print(TEXTSTARTX, view_height-curYpos, "x - cancel current autopilot activity"); curYpos += TEXTGAP;
   }
   else
@@ -2355,6 +2356,7 @@ void glut_key (unsigned char k, int x, int y)
   case 'o': case 'O':
     if (autopilot_enabled && !Landed) AUTO_NEXT = CIRCULARISEORBIT;
     InitialiseOrbitTransfers();
+    if (paused) refresh_all_subwindows();
     break;
 
   case 'c': case 'C':
@@ -2363,10 +2365,12 @@ void glut_key (unsigned char k, int x, int y)
     {
       AUTO_NEXT = TAKINGINPUT;
     }
+    if (paused) refresh_all_subwindows();
     break;
   
     case 'y': case 'Y':
       AUTO_NEXT = DEBUGHELPER;
+      break;
 
   case 'e': case 'E':
     if (AUTO_NEXT == TAKINGINPUT)
@@ -2389,37 +2393,44 @@ void glut_key (unsigned char k, int x, int y)
       }
       AUTO_NEXT = CUSTOMORBIT;
       InitialiseOrbitTransfers();
+      if (paused) refresh_all_subwindows();
     }
     break;
 
   case 'g': case 'G':
     AUTO_NEXT = GOTOMOON;
     InitialiseOrbitTransfers();
+    if (paused) refresh_all_subwindows();
     break;
   
   case 'f': case 'F':
     MoonGravityEnabled = !MoonGravityEnabled;
+    if (paused) refresh_all_subwindows();
     break;
 
   case 'x': case 'X':
     AUTO_NEXT = DONOTHING;
+    if (paused) refresh_all_subwindows();
     break;
 
   case 'r': case 'R':
     if (AUTO_NEXT == TAKINGINPUT) { RadiusAdded = RadiusAdded ? false:true; }
     else { fuel = 1.0; }
+    if (paused) refresh_all_subwindows();
     break;
 
   case 'i': case 'I':
     MoonDistTemp = MoonDistance;
     MoonDistance *= 1.1;
     if (MoonDistTemp < DEFAULTMOONDISTANCE && MoonDistTemp >= 1.0/1.1 * DEFAULTMOONDISTANCE) { MoonDistance = DEFAULTMOONDISTANCE; }
+    if (paused) refresh_all_subwindows();
     break;
 
   case 'k': case 'K':
     MoonDistTemp = MoonDistance;
     MoonDistance *= 1.0/1.1;
     if (MoonDistTemp > DEFAULTMOONDISTANCE && MoonDistTemp <= 1.1 * DEFAULTMOONDISTANCE) { MoonDistance = DEFAULTMOONDISTANCE; }
+    if (paused) refresh_all_subwindows();
     break;
 
   case 'u': case 'U':
@@ -2440,6 +2451,7 @@ void glut_key (unsigned char k, int x, int y)
     if (MoonSelected) { MoonSelected = false; LanderSelected = true; }
     else if (LanderSelected) { LanderSelected = false; MoonSelected = false; }
     else MoonSelected = true;
+    if (paused) refresh_all_subwindows();
     break;
 
   case 32:

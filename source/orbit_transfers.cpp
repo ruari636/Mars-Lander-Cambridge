@@ -435,33 +435,3 @@ void KillNormalVel()
     }
     OrbitChangeBurnerVel(-MoonRelPos.norm());
 }
-/*
-bool ApogeeChangeQueued = false;
-bool PerigeeChangeQueued = false;
-extern bool descending;
-extern bool previous_descending;
-void HoldUnstableOrbit(double radius)
-{
-    if (Altitude > (radius - LocalRadius) * 1.05) { ChangeApogee(radius); } // make big changes, otherwise fuel is wasted or worst case, the orbit is broken
-    if (Altitude < (radius - LocalRadius) / 1.05) { ChangePerigee(radius); }
-    return;
-    double ROppositeIfAtApoOrPerigee = (Altitude + LocalRadius) / 
-                    (1.0 - (2 * GRAVITY * MostImportantMass / (OrbitVel.abs2() * Altitude + LocalRadius)));
-    if (!descending && previous_descending) // we have just gone past the lowest point in the orbit
-    {
-        if (ROppositeIfAtApoOrPerigee < radius || ROppositeIfAtApoOrPerigee > radius * 1.01)
-        {
-            OrbitChangeBurn = true;
-            VelAim = VisVivaEquation(radius, Altitude + LocalRadius, Altitude + LocalRadius);
-        }
-    }
-    else if (descending && !previous_descending) // we have just gone past the highest point in the orbit
-    {
-        if (ROppositeIfAtApoOrPerigee < radius || ROppositeIfAtApoOrPerigee > radius * 1.01)
-        {
-            OrbitChangeBurn = true;
-            VelAim = VisVivaEquation(Altitude + LocalRadius, radius, Altitude + LocalRadius);
-        }        
-    }
-    OrbitChangeBurnerVel();
-}*/
