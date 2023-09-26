@@ -128,6 +128,10 @@ void numerical_dynamics (void)
   {
     FGravMoon = MoonRelPos.norm() * ((MOONMASS * LANDERMASS * GRAVITY) / (MoonRelPos.abs2()));
   }
+  else
+  {
+    FGravMoon = vector3d();
+  }
   MarsSphereOfInfluence = FGravMars.abs2() > FGravMoon.abs2();
   MostImportantMass = MarsSphereOfInfluence ? MARS_MASS:MOONMASS;
   Altitude = MarsSphereOfInfluence ? MarsAltitude:MoonAltitude;
