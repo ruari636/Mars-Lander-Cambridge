@@ -12,6 +12,7 @@ void ResetHelperInfo()
 {
     StartTimer = 0; StopTimer = 0;
     TimerStarted = false; TimerStopped = false;
+    StartTimer++;
 }
 
 void glut_print_helper (float x, float y, string s)
